@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2022",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@pages/*": ["src/pages/*"],
+      "@components/*": ["src/components/*"],
+      "@fixtures/*": ["src/fixtures/*"],
+      "@helpers/*": ["src/helpers/*"],
+      "@api/*": ["src/api/*"],
+      "@data/*": ["test-data/*"],
+      "@reporters/*": ["src/reporters/*"],
+      "@config/*": ["config/*"]
+    },
+    "checkJs": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*.js", "tests/**/*.js", "config/**/*.js"],
+  "exclude": ["node_modules", "reports", "allure-results", "allure-report", "test-results"]
+}

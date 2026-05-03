@@ -1,0 +1,122 @@
+name: RMA Playwright Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # Nightly at 2 AM UTC
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  lint:
+    name: 🔍 Lint & Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  security:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm audit --production --audit-level=high
+
+  test:
+    name: 🧪 RMA Tests (${{ matrix.project }})
+    needs: [lint, security]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [rma, rma-firefox, rma-webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps
+
+      - name: Run RMA tests
+        run: npx playwright test --project=${{ matrix.project }}
+        env:
+          CI: true
+          ENV: qa
+          RMA_BASE_URL: ${{ secrets.RMA_BASE_URL || 'https://myconnect-dev.ekinops.com' }}
+          RMA_ADMIN_EMAIL: ${{ secrets.RMA_ADMIN_EMAIL }}
+          RMA_ADMIN_PASSWORD: ${{ secrets.RMA_ADMIN_PASSWORD }}
+          RMA_VALID_SERIAL: ${{ secrets.RMA_VALID_SERIAL || 'S0283505' }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          BRANCH_NAME: ${{ github.ref_name }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.project }}
+          path: |
+            reports/
+            allure-results/
+            test-results/
+          retention-days: 30
+
+  smoke-tests:
+    name: 💨 Smoke Tests (PR only)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --project=rma --grep @smoke
+        env:
+          CI: true
+          RMA_BASE_URL: ${{ secrets.RMA_BASE_URL || 'https://myconnect-dev.ekinops.com' }}
+          RMA_ADMIN_EMAIL: ${{ secrets.RMA_ADMIN_EMAIL }}
+          RMA_ADMIN_PASSWORD: ${{ secrets.RMA_ADMIN_PASSWORD }}
+
+  report:
+    name: 📊 Publish Report
+    needs: test
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: all-results
+          pattern: test-results-*
+          merge-multiple: true
+
+      - name: Merge HTML reports
+        run: npx playwright merge-reports --reporter html ./all-results/reports
+        continue-on-error: true
+
+      - name: Upload HTML Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: playwright-report/
+          retention-days: 14

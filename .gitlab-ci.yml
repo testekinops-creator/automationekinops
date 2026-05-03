@@ -1,0 +1,56 @@
+image: mcr.microsoft.com/playwright:v1.44.0-jammy
+
+stages:
+  - lint
+  - test
+
+variables:
+  CI: 'true'
+  ENV: 'qa'
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - node_modules/
+
+lint:
+  stage: lint
+  script:
+    - npm ci
+    - npm run lint
+
+test-chromium:
+  stage: test
+  script:
+    - npm ci
+    - npx playwright test --project=rma
+  artifacts:
+    when: always
+    paths:
+      - reports/
+      - test-results/
+    reports:
+      junit: reports/junit.xml
+    expire_in: 7 days
+
+test-firefox:
+  stage: test
+  script:
+    - npm ci
+    - npx playwright test --project=rma-firefox
+  artifacts:
+    when: always
+    paths:
+      - reports/
+    expire_in: 7 days
+
+test-webkit:
+  stage: test
+  script:
+    - npm ci
+    - npx playwright test --project=rma-webkit
+  artifacts:
+    when: always
+    paths:
+      - reports/
+    expire_in: 7 days

@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  playwright-tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: rma-playwright-suite
+    environment:
+      - ENV=${ENV:-qa}
+      - RMA_BASE_URL=${RMA_BASE_URL:-https://myconnect-dev.ekinops.com}
+      - RMA_ADMIN_EMAIL=${RMA_ADMIN_EMAIL:-administrator.test@rma.com}
+      - RMA_ADMIN_PASSWORD=${RMA_ADMIN_PASSWORD:-Admin@1234567}
+      - RMA_VALID_SERIAL=${RMA_VALID_SERIAL:-S0283505}
+      - CI=true
+      - BUILD_NUMBER=${BUILD_NUMBER:-docker}
+      - BRANCH_NAME=${BRANCH_NAME:-main}
+    volumes:
+      - ../reports:/app/reports
+      - ../allure-results:/app/allure-results
+      - ../test-results:/app/test-results
+    command: npx playwright test --project=rma
+    shm_size: '2gb'
+
+  # Optional: Allure Report Server
+  allure-report:
+    image: frankescobar/allure-docker-service:latest
+    container_name: allure-report
+    ports:
+      - "5050:5050"
+    volumes:
+      - ../allure-results:/app/allure-results
+    profiles:
+      - reporting

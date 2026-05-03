@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Authentication State (sensitive)
+.auth/
+*.auth.json
+
+# Test Outputs
+reports/
+allure-results/
+allure-report/
+test-results/
+screenshots/
+videos/
+traces/
+blob-report/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary
+tmp/
+temp/
+requirements_extracted.txt

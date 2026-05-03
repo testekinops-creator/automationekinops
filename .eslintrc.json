@@ -1,0 +1,39 @@
+{
+  "env": {
+    "node": true,
+    "es2022": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:playwright/recommended"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "plugins": ["playwright"],
+  "rules": {
+    "no-console": "warn",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "prefer-const": "error",
+    "no-var": "error",
+    "eqeqeq": ["error", "always"],
+    "curly": ["error", "all"],
+    "no-throw-literal": "error",
+    "no-return-await": "error",
+    "require-await": "warn",
+    "consistent-return": "warn",
+    "no-duplicate-imports": "error",
+    "playwright/no-focused-test": "error",
+    "playwright/no-skipped-test": "warn",
+    "playwright/valid-expect": "error",
+    "playwright/expect-expect": "warn"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "reports/",
+    "allure-results/",
+    "allure-report/",
+    "test-results/"
+  ]
+}

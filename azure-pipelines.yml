@@ -1,0 +1,63 @@
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  CI: 'true'
+  ENV: 'qa'
+  NODE_VERSION: '20'
+
+stages:
+  - stage: Lint
+    jobs:
+      - job: LintAndFormat
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: $(NODE_VERSION)
+          - script: npm ci
+            displayName: 'Install dependencies'
+          - script: npm run lint
+            displayName: 'Run ESLint'
+
+  - stage: Test
+    dependsOn: Lint
+    jobs:
+      - job: RMATests
+        strategy:
+          matrix:
+            chromium:
+              PROJECT: 'rma'
+            firefox:
+              PROJECT: 'rma-firefox'
+            webkit:
+              PROJECT: 'rma-webkit'
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: $(NODE_VERSION)
+          - script: npm ci
+            displayName: 'Install dependencies'
+          - script: npx playwright install --with-deps
+            displayName: 'Install Playwright browsers'
+          - script: npx playwright test --project=$(PROJECT)
+            displayName: 'Run RMA tests'
+            env:
+              RMA_BASE_URL: $(RMA_BASE_URL)
+              RMA_ADMIN_EMAIL: $(RMA_ADMIN_EMAIL)
+              RMA_ADMIN_PASSWORD: $(RMA_ADMIN_PASSWORD)
+              BUILD_NUMBER: $(Build.BuildNumber)
+              BRANCH_NAME: $(Build.SourceBranchName)
+          - task: PublishTestResults@2
+            condition: always()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'reports/junit.xml'
+          - publish: reports/
+            artifact: playwright-report-$(PROJECT)
+            condition: always()
