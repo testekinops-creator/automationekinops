@@ -97,9 +97,38 @@ const RMAConstants = {
   },
 
   // --- RMA Test Data ---
+  // --- Customer data for reassignment and multi-customer tests ---
+  CUSTOMERS: {
+    customerOne: {
+      customerName: '1&1 VERSATEL GmbH (SAP Id: 11916)',
+      customerNameShort: '1&1 VERSATEL GmbH',
+      customerUsername: 'ACustomer One',
+      sapId: '11916',
+    },
+    customerTwo: {
+      customerName: '2degrees',
+      customerUsername: 'Accesscustomer access',
+      sapId: '',
+    },
+  },
+
+  // --- New Return Location popup test data ---
+  NEW_RETURN_LOCATION: {
+    contactName: 'AutoTest Contact',
+    company: 'AutoTest Corp',
+    building: 'Floor 3',
+    street: '123 Test Street',
+    zipcode: '10001',
+    city: 'Test City',
+    country: 'France',
+    phone: '+33123456789',
+  },
+
+  // --- RMA Test Data ---
   RMA: {
     validSerial: process.env.RMA_VALID_SERIAL || 'T1138004504037565',
     validSerial2: 'L1040004215100962',
+    ciSerial: 'L1040003043099099',   // Serial for CI / customer-reassignment tests
     invalidSerial: 'INVALID-SN-999',
     emptySerial: '',
     longSerial: 'A'.repeat(20),

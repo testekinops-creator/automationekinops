@@ -221,6 +221,141 @@ class SubmitRMAPage extends BasePage {
     if (!await this.isDuplicateSerialErrorVisible()) return '';
     return (await this.duplicateSerialError.textContent())?.trim() ?? '';
   }
+
+  // ─── "Enter a New Return Location" iframe popup methods ──────────────────────
+
+  /**
+   * Get the iframe locator for the "Enter a New Return Location" popup.
+   * The popup uses an iframe with id="iframeWindow" and class "w-100".
+   * @returns {import('@playwright/test').FrameLocator}
+   */
+  getReturnLocationIframe() {
+    return this.page.frameLocator('#iframeWindow, iframe[src*="addreturnlocation"]');
+  }
+
+  /**
+   * Check if the "Enter a New Return Location" iframe popup is visible.
+   * Checks both the modal container and the iframe itself.
+   * @returns {Promise<boolean>}
+   */
+  async isReturnLocationIframeVisible() {
+    // Check if the modal with the iframe is visible
+    const modal = this.page.locator('#addReturnLocationWindow, [id*="addReturnLocation"]').first();
+    const modalVisible = await modal.isVisible().catch(() => false);
+    if (modalVisible) return true;
+
+    // Fallback: check iframe directly
+    const iframe = this.page.locator('iframe#iframeWindow, iframe[src*="addreturnlocation"]').first();
+    return await iframe.isVisible().catch(() => false);
+  }
+
+  /**
+   * Fill the "Enter a New Return Location" form inside the iframe.
+   * Fields: Contact Name*, Company*, Building/Floor, Street*, Zipcode*, City*, Country*, Phone*
+   * Customer Name and User Name are pre-populated and read-only.
+   * @param {Object} data
+   * @param {string} data.contactName
+   * @param {string} data.company
+   * @param {string} [data.building]
+   * @param {string} data.street
+   * @param {string} data.zipcode
+   * @param {string} data.city
+   * @param {string} data.country
+   * @param {string} data.phone
+   */
+  async fillNewReturnLocationForm(data) {
+    const iframe = this.getReturnLocationIframe();
+
+    if (data.contactName) {
+      await iframe.locator('input[name*="contact_name"], input[placeholder*="Contact" i]').first().fill(data.contactName);
+    }
+    if (data.company) {
+      await iframe.locator('input[name*="company"], input[name*="return_company"], input[placeholder*="Company" i]').first().fill(data.company);
+    }
+    if (data.building) {
+      await iframe.locator('input[name*="building"], input[placeholder*="Building" i]').first().fill(data.building).catch(() => {});
+    }
+    if (data.street) {
+      await iframe.locator('input[name*="street"], input[placeholder*="Street" i]').first().fill(data.street);
+    }
+    if (data.zipcode) {
+      await iframe.locator('input[name*="zip"], input[name*="zipcode"], input[placeholder*="Zip" i]').first().fill(data.zipcode);
+    }
+    if (data.city) {
+      await iframe.locator('input[name*="city"], input[placeholder*="City" i]').first().fill(data.city);
+    }
+    if (data.country) {
+      const countrySelect = iframe.locator('select[name*="country"]').first();
+      await countrySelect.selectOption({ label: data.country }).catch(async () => {
+        // Fallback: try partial match
+        await countrySelect.evaluate((node, c) => {
+          const option = Array.from(node.options).find(o => o.text.includes(c) || o.value === c);
+          if (option) {
+            node.value = option.value;
+            node.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }, data.country).catch(() => {});
+      });
+    }
+    if (data.phone) {
+      await iframe.locator('input[name*="phone"], input[placeholder*="Phone" i]').first().fill(data.phone);
+    }
+  }
+
+  /**
+   * Get pre-populated Customer Name from the iframe popup.
+   * @returns {Promise<string>}
+   */
+  async getIframeCustomerName() {
+    const iframe = this.getReturnLocationIframe();
+    const field = iframe.locator('input[name*="customer_name"], input[readonly]').first();
+    return await field.inputValue().catch(() => '');
+  }
+
+  /**
+   * Get pre-populated User Name from the iframe popup.
+   * @returns {Promise<string>}
+   */
+  async getIframeUserName() {
+    const iframe = this.getReturnLocationIframe();
+    const field = iframe.locator('input[name*="user_name"], input[readonly]').nth(1);
+    return await field.inputValue().catch(() => '');
+  }
+
+  /**
+   * Submit the "Enter a New Return Location" form inside the iframe.
+   */
+  async submitNewReturnLocation() {
+    const iframe = this.getReturnLocationIframe();
+    await iframe.locator('button:has-text("Submit"), input[type="submit"], button[type="submit"]').first().click();
+    await this.page.waitForTimeout(3000);
+  }
+
+  /**
+   * Check if the main form fields have been cleared (reset) after iframe popup submission.
+   * On Submit RMA page, fields should be cleared after adding new return location.
+   * On Edit RMA page, fields should NOT be cleared.
+   * @returns {Promise<{customerCleared: boolean, usernameCleared: boolean, returnLocationCleared: boolean}>}
+   */
+  async checkFormFieldsCleared() {
+    // Check Customer Name Select2 — if cleared, the Select2 text should be placeholder
+    const customerSelect2Text = await this.page.locator('#customer_id')
+      .locator('xpath=..').locator('.select2-selection__rendered')
+      .textContent().catch(() => '');
+    const customerCleared = !customerSelect2Text || /select/i.test(customerSelect2Text.trim()) || customerSelect2Text.trim() === '';
+
+    // Check Customer Username Select2
+    const userSelect2Text = await this.page.locator('#user_id')
+      .locator('xpath=..').locator('.select2-selection__rendered')
+      .textContent().catch(() => '');
+    const usernameCleared = !userSelect2Text || /select/i.test(userSelect2Text.trim()) || userSelect2Text.trim() === '';
+
+    // Check Return Location dropdown
+    const returnLocationValue = await this.returnLocationDropdown.inputValue().catch(() => '');
+    const returnLocationCleared = !returnLocationValue || returnLocationValue === '' || returnLocationValue === '0';
+
+    return { customerCleared, usernameCleared, returnLocationCleared };
+  }
 }
 
 module.exports = { SubmitRMAPage };

@@ -31,6 +31,7 @@ async function globalTeardown() {
   console.log('\n   🛡️  [Layer 3] Safety-net cleanup — catching anything fixture missed...');
   const testSerials = [
     process.env.RMA_VALID_SERIAL || 'T1138004504037565',
+    'L1040003043099099', // CI serial for customer-reassignment tests
     // 'L1040004215100962',
   ];
   await cleanupSerials(testSerials, {

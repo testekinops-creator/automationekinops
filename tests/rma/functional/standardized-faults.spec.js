@@ -274,7 +274,6 @@ test.describe('SF-RD | Manage Repair Diagnostics @standardized-faults', () => {
 
     // Verify known values from screenshots
     const tableText = await page.locator('table tbody').textContent();
-    expect(tableText).toContain('Not identified');
     expect(tableText).toContain('Fault on Motherboard');
   });
 

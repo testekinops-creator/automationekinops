@@ -417,6 +417,7 @@ async function cleanupSerials(serials, { prefix = '[Cleanup]', includeEngineerPh
     for (const serial of serials) {
       let iterations = 0;
       const MAX_ITERATIONS = 10;
+      let consecutiveFailures = 0;
 
       while (iterations++ < MAX_ITERATIONS) {
         const rowCount = await filterBySerial(page, serial);
@@ -442,8 +443,14 @@ async function cleanupSerials(serials, { prefix = '[Cleanup]', includeEngineerPh
           const ok = await executeAction(page, 'Reject', `${prefix} Auto-rejected for test cleanup.`);
           if (ok) {
             console.log(`      ↳ Rejected S/N ${serial}`);
+            consecutiveFailures = 0;
           } else {
-            console.log(`      ↳ Reject action failed for S/N ${serial} — retrying with fresh status`);
+            consecutiveFailures++;
+            console.log(`      ↳ Reject action failed for S/N ${serial} — attempt ${consecutiveFailures}/3`);
+            if (consecutiveFailures >= 3) {
+              console.log(`      ↳ Giving up on S/N ${serial} after ${consecutiveFailures} consecutive failures`);
+              break;
+            }
             continue;
           }
         } else if (status === 'Rejected' || status === 'Repaired') {
@@ -451,11 +458,17 @@ async function cleanupSerials(serials, { prefix = '[Cleanup]', includeEngineerPh
           if (!ok) {
             const ok2 = await executeAction(page, 'Close RMA', `${prefix} Auto-closed for test cleanup.`);
             if (!ok2) {
-              console.log(`      ↳ Close action failed for S/N ${serial} — retrying with fresh status`);
+              consecutiveFailures++;
+              console.log(`      ↳ Close action failed for S/N ${serial} — attempt ${consecutiveFailures}/3`);
+              if (consecutiveFailures >= 3) {
+                console.log(`      ↳ Giving up on S/N ${serial} after ${consecutiveFailures} consecutive failures`);
+                break;
+              }
               continue;
             }
           }
           console.log(`      ↳ Closed S/N ${serial}`);
+          consecutiveFailures = 0;
         } else {
           console.log(`      ↳ Unknown status "${status}" — skipping`);
           break;

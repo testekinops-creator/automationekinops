@@ -44,6 +44,7 @@ module.exports = async function globalSetup() {
     console.log('\n   🛡️  [Layer 1] Clearing stale RMAs from previous runs...');
     const testSerials = [
       process.env.RMA_VALID_SERIAL || 'T1138004504037565',
+      'L1040003043099099', // CI serial for customer-reassignment tests
       // 'L1040004215100962', // Temporarily disabled to avoid 10-minute cleanup of 27 stale entries
     ];
     await cleanupSerials(testSerials, {
