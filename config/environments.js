@@ -10,8 +10,15 @@ const environments = {
     description: 'Development Environment',
   },
 
+  acc: {
+    baseURL: 'https://myconnect-acc.ekinops.com',
+    timeout: 45_000,
+    retries: 1,
+    description: 'Acceptance Environment',
+  },
+
   qa: {
-    baseURL: 'https://myconnect-dev.ekinops.com',
+    baseURL: 'https://myconnect-acc.ekinops.com',
     timeout: 45_000,
     retries: 1,
     description: 'QA / Testing Environment',

@@ -1,7 +1,9 @@
+const { expect } = require('@playwright/test');
 const BasePage = require('../BasePage');
 
 /**
  * RMADashboardPage - Page Object for RMA Dashboard.
+ * Selectors based on actual DOM at https://myconnect-acc.ekinops.com/rma/dashboard/
  * @extends BasePage
  */
 class RMADashboardPage extends BasePage {
@@ -9,58 +11,86 @@ class RMADashboardPage extends BasePage {
   constructor(page) {
     super(page);
 
+    // Page heading — "RMA Requests" heading with "RMA Dashboard" subtitle
     this.pageHeading = page.locator('h2, h1').filter({ hasText: /RMA Requests/i }).first();
     this.pageSubtitle = page.locator('text=RMA Dashboard').first();
-    this.introText = page.locator('text=comprehensive overview').first();
+    this.introText = page.locator('text=/comprehensive overview/i').first();
 
+    // KPI Card helper — each card lives in a div.bubble-box container
     this._cardRoot = (title) =>
-      page.locator('[class*="card"], [class*="kpi"], .dashboard-item, div')
+      page.locator('div.bubble-box')
         .filter({ hasText: title })
         .first();
 
+    // Employee KPI Cards (exact titles from the live application)
     this.cards = {
+      repairInProgress: this._cardRoot('RMA Repair In Progress'),
       pendingAccept: this._cardRoot('RMA - Pending Accept'),
-      inProgress: this._cardRoot('RMA In Progress').first(),
-      inProgressOver30: this._cardRoot('More than 30 days'),
-      submittedMore3Times: this._cardRoot('More than 3 times'),
-      repairedNotClosed: this._cardRoot('Repaired but not closed'),
+      inProgressOver30: this._cardRoot('In Progress More Than 30 Days'),
       acceptedNotReceived: this._cardRoot('Accepted & Not Received'),
+      submittedMore3Times: this._cardRoot('Submitted More Than 3 Times'),
+      repairedNotClosed: this._cardRoot('Repaired But Not Closed'),
+      // Customer cards
       awaitingDevice: this._cardRoot('Awaiting Device'),
       repairedCustomer: this._cardRoot('RMA Repaired'),
     };
 
+    // Left sidebar navigation — actual text from the live application
     this.sidebar = {
-      dashboard: page.locator('nav a, .sidebar a').filter({ hasText: /^Dashboard$/i }).first(),
-      submitRma: page.locator('nav a, .sidebar a').filter({ hasText: /Submit RMA/i }).first(),
-      viewRma: page.locator('nav a, .sidebar a').filter({ hasText: /View RMA/i }).first(),
-      factoryInsert: page.locator('nav a, .sidebar a').filter({ hasText: /Factory Insert/i }).first(),
-      factoryReceive: page.locator('nav a, .sidebar a').filter({ hasText: /Factory Receive/i }).first(),
-      manageAddress: page.locator('nav a, .sidebar a').filter({ hasText: /Manage Address/i }).first(),
+      dashboard: page.locator('.sidebar a, nav a, .left-panel a').filter({ hasText: /^Dashboard$/i }).first(),
+      rmaList: page.locator('.sidebar a, nav a, .left-panel a').filter({ hasText: /^RMA List$/i }).first(),
+      submitRma: page.locator('.sidebar a, nav a, .left-panel a').filter({ hasText: /Submit RMA Request/i }).first(),
+      factoryInsert: page.locator('.sidebar a, nav a, .left-panel a').filter({ hasText: /Factory Insert RMA/i }).first(),
+      factoryReceive: page.locator('.sidebar a, nav a, .left-panel a').filter({ hasText: /Factory Receive RMA/i }).first(),
+      manageAddress: page.locator('.sidebar a, nav a, .left-panel a').filter({ hasText: /Manage Address/i }).first(),
+      standardizedFaults: page.locator('.sidebar a, nav a, .left-panel a').filter({ hasText: /Standardized Faults/i }).first(),
+    };
+
+    // Top navigation bar
+    this.topNav = {
+      home: page.locator('.navbar a[href="/home"], .nav-link[href="/home"]').first(),
+      salesforce: page.locator('.navbar a, .nav-link').filter({ hasText: /Salesforce/i }).first(),
+      extranet: page.locator('.navbar a, .nav-link').filter({ hasText: /Extranet/i }).first(),
+      rmaDropdown: page.locator('.navbar a, .nav-link').filter({ hasText: /RMA.*Access Product/i }).first(),
+      documentCenter: page.locator('.navbar a, .nav-link').filter({ hasText: /Document Center/i }).first(),
+      logout: page.locator('a:has-text("Logout")'),
     };
   }
 
   async goto() {
-    await this.navigate('/rma');
+    await this.navigate('/rma/dashboard/');
   }
 
   async clickCard(cardName) {
     const card = this._cardRoot(cardName);
     await card.waitFor({ state: 'visible', timeout: 10_000 });
-    await card.click();
-    await this.page.waitForLoadState('networkidle');
+    // Click the dashboard-bubble-link anchor which triggers the form POST
+    const link = card.locator('a.dashboard-bubble-link').first();
+    await Promise.all([
+      this.page.waitForNavigation({ waitUntil: 'networkidle', timeout: 15_000 }),
+      link.click(),
+    ]);
   }
 
   async getCardCount(cardName) {
     const card = this._cardRoot(cardName);
-    const bubble = card.locator('[class*="count"], [class*="badge"], [class*="bubble"], span').first();
+    // Count bubble is div.dashboard-bubble (e.g. <div class="dashboard-bubble bubble-blue">15</div>)
+    const bubble = card.locator('div.dashboard-bubble').first();
     const text = await bubble.textContent();
     return parseInt(text?.trim() ?? '0', 10);
   }
 
   async getCardBubbleColor(cardName) {
     const card = this._cardRoot(cardName);
-    const bubble = card.locator('[class*="count"], [class*="badge"], [class*="bubble"]').first();
+    const bubble = card.locator('div.dashboard-bubble').first();
     return await bubble.evaluate((el) => window.getComputedStyle(el).backgroundColor);
+  }
+
+  async expectBubbleColor(cardName, expectedColor) {
+    const card = this._cardRoot(cardName);
+    const bubble = card.locator('div.dashboard-bubble').first();
+    // Valid classes in DOM are bubble-grey, bubble-blue, bubble-red, bubble-green
+    await expect(bubble).toHaveClass(new RegExp(`bubble-${expectedColor}`, 'i'));
   }
 
   async isSidebarItemVisible(itemKey) {

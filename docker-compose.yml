@@ -8,10 +8,10 @@ services:
     container_name: rma-playwright-suite
     environment:
       - ENV=${ENV:-qa}
-      - RMA_BASE_URL=${RMA_BASE_URL:-https://myconnect-dev.ekinops.com}
+      - RMA_BASE_URL=${RMA_BASE_URL:-https://myconnect-acc.ekinops.com}
       - RMA_ADMIN_EMAIL=${RMA_ADMIN_EMAIL:-administrator.test@rma.com}
       - RMA_ADMIN_PASSWORD=${RMA_ADMIN_PASSWORD:-Admin@1234567}
-      - RMA_VALID_SERIAL=${RMA_VALID_SERIAL:-S0283505}
+      - RMA_VALID_SERIAL=${RMA_VALID_SERIAL:-T1138004504037566}
       - CI=true
       - BUILD_NUMBER=${BUILD_NUMBER:-docker}
       - BRANCH_NAME=${BRANCH_NAME:-main}

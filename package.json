@@ -11,11 +11,12 @@
   "scripts": {
     "test": "npx playwright test --project=rma",
     "test:all": "npx playwright test --project=rma --reporter=html",
-    "test:smoke": "npx playwright test --project=rma --grep @smoke",
+    "test:smoke": "npx playwright test --project=rma --grep smoke",
     "test:security": "npx playwright test --project=rma --grep @security",
     "test:auth": "npx playwright test --project=rma tests/rma/auth.spec.js",
-    "test:rbac": "npx playwright test --project=rma tests/rma/rbac.spec.js",
-    "test:dashboard": "npx playwright test --project=rma tests/rma/dashboard.spec.js",
+    "test:rbac": "npx playwright test --project=rma tests/rma/access/rbac.spec.js",
+    "test:integration": "npx playwright test --project=rma tests/rma/functional/integration.spec.js",
+    "test:dashboard": "npx playwright test --project=rma tests/rma/functional/dashboard.spec.js",
     "test:submit": "npx playwright test --project=rma tests/rma/submit-rma.spec.js --grep 'Submit RMA'",
     "test:factory-receive": "npx playwright test --project=rma tests/rma/submit-rma.spec.js --grep 'Factory Receive'",
     "test:factory-insert": "npx playwright test --project=rma tests/rma/view-rma.spec.js --grep 'Factory Insert'",
@@ -41,14 +42,15 @@
   "dependencies": {
     "@playwright/test": "^1.44.0",
     "allure-playwright": "^2.15.0",
+    "cheerio": "^1.2.0",
     "dotenv": "^16.4.0"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
     "eslint-plugin-playwright": "^1.6.0",
-    "prettier": "^3.2.0",
     "husky": "^9.0.0",
-    "lint-staged": "^15.2.0"
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.0"
   },
   "lint-staged": {
     "*.js": [

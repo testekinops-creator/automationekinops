@@ -27,7 +27,9 @@
     "playwright/no-focused-test": "error",
     "playwright/no-skipped-test": "warn",
     "playwright/valid-expect": "error",
-    "playwright/expect-expect": "warn"
+    "playwright/expect-expect": "warn",
+    "playwright/no-wait-for-timeout": "warn",
+    "playwright/no-networkidle": "warn"
   },
   "ignorePatterns": [
     "node_modules/",

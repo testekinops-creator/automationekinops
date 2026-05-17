@@ -1,0 +1,962 @@
+<!DOCTYPE html><html lang="en"><head>
+        <meta name="description" content="MyConnect - The Ekinops customer portal is excited to welcome you aboard! This portal is designed to ensure you have the best user experience and customer support possible when working with Ekinops solutions.">
+        <title>Ekinops MyConnect - Factory Insert RMA</title>
+        <noscript><meta http-equiv="refresh" content="0;url=https://myconnect-dev.ekinops.com/nojs"></noscript>
+        <!-- Header -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="csrf-token" content="R41Q1LXfn8S57tYnakiLF8jfDycZF82bsNuTRtV8">
+<!-- Header Files -->
+    <link href="https://myconnect-dev.ekinops.com/images/favicon.ico" rel="shortcut icon" type="image/x-icon">
+    <link href="https://use.typekit.net/wrg1aas.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://myconnect-dev.ekinops.com/css/app.css?id=400301aa5c3041be9710">
+    <link href="https://myconnect-dev.ekinops.com/css/layout.css?id=a0cecd21b1e1cc89d443" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.1.0/cookieconsent.min.css">
+        <link rel="stylesheet" href="https://myconnect-dev.ekinops.com/modules/rma/css/rma.css?id=32deff0e80ebecad7947">
+
+<!-- Module Header Files -->
+        
+    
+    </head>
+    <body class="rma"><div role="dialog" aria-live="polite" aria-label="cookieconsent" aria-describedby="cookieconsent:desc" class="cc-window cc-banner cc-type-info cc-theme-block cc-bottom cc-color-override-319664718 cc-invisible" style="display: none;"><!--googleoff: all--><span id="cookieconsent:desc" class="cc-message">This website uses cookies to ensure you get the best experience on our website. Read more about  <a aria-label="learn more about cookies" role="button" tabindex="0" class="cc-link" href="https://www.ekinops.com/privacy-policy" rel="noopener noreferrer nofollow" target="_blank">Ekinops Privacy and Data Protection</a></span><div class="cc-compliance"><a aria-label="dismiss cookie message" role="button" tabindex="0" class="cc-btn cc-dismiss">Allow Cookies</a></div><!--googleon: all--></div>
+                                <div class="alert alert-danger mb-0 p-1 user-alart-bar" style="display:none" id="serverAvailabilityAlertRibbon" role="alert"> </div>
+
+                        <header class="navigation navbar-expand" style="margin-bottom:1px">
+    <div class="container-fluid-bs4 ">
+        <div class="header-content">
+            <div class="navbar-leftcontainer ms-2">
+                                <a class="navbar-brand text-black" href="https://www.ekinops.com" target="_blank"><img src="https://myconnect-dev.ekinops.com/images/ekinopslogo.png" alt="MyConnect"></a>
+                            </div>
+            <div class="navbar-rightcontainer d-none d-md-block">
+                            <div class="d-flex flex-row-reverse">
+                    <div>
+                        <ul class="navbar-nav">
+                            <li class="nav-item dropdown" id="notification-wrapper">
+                                <a class="nav-link dropdown-toggle nav-link badge-counter-warpper notification-counter" data-bs-toggle="dropdown" href="#">
+                                    <i class="mdi mdi-bell mdi-14px" aria-hidden="true"></i>&nbsp;
+                                    <span class="badge text-bg-danger badge-counter">0</span>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end keep-open">
+                                    <div id="notification-container"></div>
+                                </div>
+                            </li>
+                            <li class="nav-item dropdown">
+                             <a href="https://myconnect-dev.ekinops.com/documentcentre" class="dropdown-item"><i class="mdi mdi-help-circle mdi-14px" aria-hidden="true"></i>Help</a>
+                                
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="https://www.ekinops.com/company/about-ekinops/contacts" class="dropdown-item" rel="noopener" target="_blank"><i class="mdi mdi-account-wrench mdi-14px" aria-hidden="true"></i>Support</a>
+                                
+                            </li>
+
+                            <li class="nav-item dropdown">
+                                <form method="POST" id="logoutForm" action="https://myconnect-dev.ekinops.com/logout">
+                                    <input type="hidden" name="_token" value="R41Q1LXfn8S57tYnakiLF8jfDycZF82bsNuTRtV8" autocomplete="off">                                    <a class="dropdown-item" href="#" onclick="event.preventDefault();
+                                                        $('#logoutForm').submit();">
+                                    <i class="mdi mdi-logout mdi-14px" aria-hidden="true"></i>
+                                    Logout
+                                    </a>
+                                </form>
+                            </li>
+                            <li class="nav-item dropdown me-3">
+                                <a class="nav-link profile-link" href="https://myconnect-dev.ekinops.com/user/profile/view/administrator.test@rma.com">
+                                    <span class="avatar avatar-sm" style="background-image: url(https://myconnect-dev.ekinops.com/images/userAvatar.png"></span>
+                                 Admin 
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                        </div>
+            <button class="d-block d-md-none" type="button" id="navbar-toggler"></button>
+        </div>
+    </div>
+</header>
+                        <header class="navigation navbar-expand">
+    <div class="container-fluid-bs4 ">
+        <div class="header-content">
+                                 <div class="navbar-leftcontainer ms-3">
+                 <a style="margin-top:0.8rem" href="https://myconnect-dev.ekinops.com" target="_self"><i class="mdi mdi-home mdi-24px" aria-hidden="true"></i></a>
+                                <div>
+                                <ul class="navbar-nav "><li class="nav-item "><a href="https://ekinops-cloud.my.salesforce.com/" data-bs-toggle="" name="salesforceInternal" id="salesforceInternal" class="nav-link   " target="_blank">Salesforce</a></li><li class="nav-item "><a href="https://extranet.ekinops.com/core/login/sso" data-bs-toggle="" name="extranetRma" id="extranetRma" class="nav-link   " target="_blank">Extranet (RMA/TAC)</a></li><li class="nav-item dropdown"><a href="#" data-bs-toggle="dropdown" name="rma" id="rma" class="nav-link dropdown-toggle  active" target="_self">RMA (Access Product)</a><ul class="dropdown-menu"><li class=""><a href="https://myconnect-dev.ekinops.com/rma/dashboard/" name="rmaDashboard" id="rmaDashboard" class="dropdown-item   " title="RMA Dashboard" target="_self">RMA Dashboard</a></li><li class=""><a href="https://myconnect-dev.ekinops.com/rma/list" name="listRma" id="listRma" class="dropdown-item   " title="RMA List" target="_self">RMA List</a></li><li class=""><a href="https://myconnect-dev.ekinops.com/rma/add" name="submitRma" id="submitRma" class="dropdown-item   " title="Submit An RMA Request" target="_self">Submit An RMA Request</a></li></ul></li><li class="nav-item "><a href="https://myconnect-dev.ekinops.com/documentcentre/home" data-bs-toggle="" name="documentCentre" id="documentCentre" class="nav-link   " target="_self">Document Center</a></li></ul>
+                </div>
+            </div>
+            <div class="navbar-rightcontainer d-none d-md-block">
+                            <div class="d-flex flex-row-reverse">
+                    <!-- <div>
+
+                        <ul class="navbar-nav">
+
+                        </ul>
+                    </div> -->
+                </div>
+                        </div>
+            <button class="d-block d-md-none" type="button" id="navbar-toggler"></button>
+        </div>
+    </div>
+</header>
+                <div id="wrapper">
+                                                <!-- Sidebar -->
+<!-- Sidebar Toggle (Topbar) -->
+<button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-0 me-3  float-start">
+    <i class="mdi mdi-menu"></i>
+</button>
+<ul class="navbar-nav bg-gradient-primary sidebar accordion" id="accordionSidebar"><li><a class="sidebar-brand d-flex align-items-center justify-content-left" href="#">
+                        <div class="sidebar-brand-icon rotate-n-15 ms-1">
+                            <i class="mdi mdi-file-replace-outline"></i>
+                        </div>
+                        <div class="sidebar-brand-text mx-1">RMA</div>
+                        </a>
+                    <hr class="sidebar-divider my-0"></li><li class="nav-item ">
+                            <a class="nav-link " title="RMA Dashboard" target="_self" href="https://myconnect-dev.ekinops.com/rma/dashboard/">
+                                <i class="mdi mdi-view-dashboard"></i>
+                                <span>Dashboard</span></a>
+                                
+                        </li><li class="nav-item ">
+                            <a class="nav-link " title="RMA List" target="_self" href="https://myconnect-dev.ekinops.com/rma/list">
+                                <i class="mdi mdi-format-list-bulleted"></i>
+                                <span>RMA List</span></a>
+                                
+                        </li><li class="nav-item ">
+                            <a class="nav-link " title="Submit RMA" target="_self" href="https://myconnect-dev.ekinops.com/rma/add">
+                                <i class="mdi mdi-plus-box"></i>
+                                <span>Submit RMA Request</span></a>
+                                
+                        </li><li class="nav-item active">
+                            <a class="nav-link " title="Factory Insert RMA" target="_self" href="https://myconnect-dev.ekinops.com/rma/factory/add">
+                                <i class="mdi mdi-plus-box"></i>
+                                <span>Factory Insert RMA</span></a>
+                                
+                        </li><li class="nav-item ">
+                            <a class="nav-link " title="Factory Insert RMA" target="_self" href="https://myconnect-dev.ekinops.com/rma/factory/receive/">
+                                <i class="mdi mdi-plus-box"></i>
+                                <span>Factory Receive RMA</span></a>
+                                
+                        </li><li class="nav-item ">
+                            <a class="nav-link " title="Manage Return Address" target="_self" href="https://myconnect-dev.ekinops.com/rma/manageaddr/">
+                                <i class="mdi mdi-plus-box"></i>
+                                <span>Manage Address</span></a>
+                                
+                        </li><hr class="sidebar-divider d-none d-md-block">
+                <!-- Sidebar Toggler (Sidebar) -->
+                <div class="toggle-sidebar-button d-md-block d-none">
+                    <button class="border-0" id="sidebarToggle"></button>
+                </div>
+        </ul>
+                                <!-- Content Wrapper -->
+                <div id="content-wrapper">
+                    <div id="content">
+                                            <div class="container-fluid">
+                                                                            <div class="row">
+                                <div class="col-xl-10">
+    <div class="page-header d-print-none">
+        <img alt="Factory Insert RMA" src="https://myconnect-dev.ekinops.com/modules/rma/images/rma-factory-insert.png" class="page-image">
+        <h2 class="page-title">Factory Insert RMA</h2>
+        <span class="page-description">Create RMA &amp; Receive at Factory</span>
+                <div class="clearfix"></div>
+    </div>
+</div>
+                                                            </div>
+                                                    <div class="card panel mt-1">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-xl-12">
+                <div class="row home-dashboard">
+                    <div class="col-md-12">
+                        <div class="border-bottom dashboard-description text-center pb-3 mb-4">
+                                The Factory Insert section allows repair engineers to directly create and submit RMA requests while recording the receipt of devices at the factory. This form is primarily used for customers who send devices directly for repair without creating an RMA request in advance. RMAs created through this section are automatically set to “Received” status.   
+                        </div>
+                    </div>
+                </div>    
+            </div>    
+        </div>
+        <form method="post" action="https://myconnect-dev.ekinops.com/rma/factory/add" id="factoryInsertForm" class="factory-insert-add-page" data-alert-serial-not-found="Sorry, The Serial Number you have entered is not found in our system." data-alert-product-not-found="Sorry, The Product Code you have entered is not found in our system">
+            <div class="submitRma-form-wrapper">
+                <input type="hidden" name="_token" value="R41Q1LXfn8S57tYnakiLF8jfDycZF82bsNuTRtV8" autocomplete="off">                                
+                <fieldset class="form-fieldset">
+                    <legend>Customer</legend>
+                    <div class="row">
+                                                     <div class="col-md-4 mb-3">
+                                    <label class="form-label required">Customer Name</label>
+                                    <select class="form-select form-select-sm select2 select2-hidden-accessible" name="customer_id" id="customer_id" data-minimum-results-for-search="1" data-select2-id="customer_id" tabindex="-1" aria-hidden="true">
+                                        <option value="">Select Customer</option>
+                                                                                                                                <option value="10269">NORLYS MOBIL A/S (SAP Id: 11968)</option>
+                                                                                                                                <option value="10267">COVAGE INFRA (SAP Id: 11967)</option>
+                                                                                                                                <option value="10265">NEXUS COMS SA (SAP Id: 11966)</option>
+                                                                                                                                <option value="10256">OTE - COSMOTE (SAP Id: 11965)</option>
+                                                                                                                                <option value="10251">LINKT (SAP Id: 11964)</option>
+                                                                                                                                <option value="10244">new imad (SAP Id: )</option>
+                                                                                                                                <option value="10241">Vocus Pty Ltd (SAP Id: 11963)</option>
+                                                                                                                                <option value="10230">ITNI (SAP Id: 11962)</option>
+                                                                                                                                <option value="10207">BELL CANADA (SAP Id: 11961)</option>
+                                                                                                                                <option value="10199" selected="" data-select2-id="2">Deutsche Glasfaser Wholesale GmbH (SAP Id: 11960)</option>
+                                                                                                                                <option value="10195">DS Total Solutions Ltd (SAP Id: 11959)</option>
+                                                                                                                                <option value="10188">SICOTEL COMMUNICATIONS (SAP Id: 11958)</option>
+                                                                                                                                <option value="10186">Direction Générale de La Poste (SAP Id: 11957)</option>
+                                                                                                                                <option value="10151">Ooredoo-Oman (SAP Id: )</option>
+                                                                                                                                <option value="10152">ORANGE BULGARIA (SAP Id: )</option>
+                                                                                                                                <option value="10153">OTE (SAP Id: )</option>
+                                                                                                                                <option value="10154">Telenor Sweden (SAP Id: )</option>
+                                                                                                                                <option value="10155">Uptime Group NV (SAP Id: )</option>
+                                                                                                                                <option value="10150">Nexloop (SAP Id: )</option>
+                                                                                                                                <option value="10210">Nexloop (SAP Id: )</option>
+                                                                                                                                <option value="10211">Ooredoo-Oman (SAP Id: )</option>
+                                                                                                                                <option value="10212">ORANGE BULGARIA (SAP Id: )</option>
+                                                                                                                                <option value="10213">OTE (SAP Id: )</option>
+                                                                                                                                <option value="10214">Telenor Sweden (SAP Id: )</option>
+                                                                                                                                <option value="10215">Uptime Group NV (SAP Id: )</option>
+                                                                                                                                <option value="9845">Forthnet (SAP Id: )</option>
+                                                                                                                                <option value="9846">Frontier Communications (SAP Id: )</option>
+                                                                                                                                <option value="9847">Hrvatski Telekom (SAP Id: )</option>
+                                                                                                                                <option value="9848">T-Mobile Netherland (SAP Id: )</option>
+                                                                                                                                <option value="9849">Telefonica Spain (SAP Id: )</option>
+                                                                                                                                <option value="9850">Telus (SAP Id: )</option>
+                                                                                                                                <option value="9851">Living Objects (SAP Id: )</option>
+                                                                                                                                <option value="9852">Atos Worldline France (SAP Id: )</option>
+                                                                                                                                <option value="9853">Telefonica Germany (SAP Id: )</option>
+                                                                                                                                <option value="9854">Sewan (SAP Id: )</option>
+                                                                                                                                <option value="9855">Broadnet (SAP Id: )</option>
+                                                                                                                                <option value="9856">Cyta Hellas (SAP Id: )</option>
+                                                                                                                                <option value="9857">DT T-Com (SAP Id: )</option>
+                                                                                                                                <option value="9858">ECI India (SAP Id: )</option>
+                                                                                                                                <option value="9859">iWay (SAP Id: )</option>
+                                                                                                                                <option value="9860">Magyar Telekom (SAP Id: )</option>
+                                                                                                                                <option value="9861">MTS (SAP Id: )</option>
+                                                                                                                                <option value="9862">P&amp;T Luxembourg (SAP Id: )</option>
+                                                                                                                                <option value="9863">PLDT Philippines (SAP Id: )</option>
+                                                                                                                                <option value="9864">T-HT Croatia (SAP Id: )</option>
+                                                                                                                                <option value="9865">Combridge (SAP Id: )</option>
+                                                                                                                                <option value="9866">Slovak Telecom (SAP Id: )</option>
+                                                                                                                                <option value="9867">Sri Lanka Telecom (SAP Id: )</option>
+                                                                                                                                <option value="9868">Roots Communications (SAP Id: )</option>
+                                                                                                                                <option value="9869">Liquid Telecom SA (SAP Id: )</option>
+                                                                                                                                <option value="9870">Metrofiber networkx (SAP Id: )</option>
+                                                                                                                                <option value="9871">Orange Senegal (SAP Id: )</option>
+                                                                                                                                <option value="9872">INNOVA ITC (SAP Id: )</option>
+                                                                                                                                <option value="9873">Techinno Solutions Lanka Pty Ltd (SAP Id: )</option>
+                                                                                                                                <option value="9874">KONTRON (SAP Id: )</option>
+                                                                                                                                <option value="9875">Prospect-Customer (SAP Id: )</option>
+                                                                                                                                <option value="9876">Linkt France (SAP Id: )</option>
+                                                                                                                                <option value="9877">Orange OCWS (SAP Id: )</option>
+                                                                                                                                <option value="9878">VCG Group (Vodat) (SAP Id: )</option>
+                                                                                                                                <option value="9879">NWCCOG (SAP Id: )</option>
+                                                                                                                                <option value="9880">Teridion (SAP Id: )</option>
+                                                                                                                                <option value="7873">Test Vijay 24-10-2024 (SAP Id: 40985)</option>
+                                                                                                                                <option value="7874">Test ACC 12-Dec-2024 1 @17:18 (SAP Id: 11932)</option>
+                                                                                                                                <option value="7865">Orange France (SAP Id: 22061)</option>
+                                                                                                                                <option value="7866">Orange Global (SAP Id: 70428)</option>
+                                                                                                                                <option value="7867">Test Account (SAP Id: 40983)</option>
+                                                                                                                                <option value="7868">Test_Account_Access (SAP Id: 70429)</option>
+                                                                                                                                <option value="7869">New (SAP Id: 40984)</option>
+                                                                                                                                <option value="7870">Test Vijay 04-Nov-2024 (SAP Id: 11931)</option>
+                                                                                                                                <option value="7712">Ekinops Internal OR-19 SoldTo Customer (SAP Id: )</option>
+                                                                                                                                <option value="7863">RAIN COMMUNICATIONS LTD (SAP Id: 4104370)</option>
+                                                                                                                                <option value="7690">Test Sold 30-11-2023 (SAP Id: )</option>
+                                                                                                                                <option value="7680">Test 23-06-2023 (SAP Id: )</option>
+                                                                                                                                <option value="7120">TELCOAD SI (SAP Id: )</option>
+                                                                                                                                <option value="7100">Coreun (SAP Id: )</option>
+                                                                                                                                <option value="7094">Lyntia (SAP Id: )</option>
+                                                                                                                                <option value="7087">VODAFONE ITALY (SAP Id: )</option>
+                                                                                                                                <option value="7070">Yadtel (SAP Id: )</option>
+                                                                                                                                <option value="7067">Tele2 Sverige AB (SAP Id: )</option>
+                                                                                                                                <option value="7063">Selcraft (SAP Id: )</option>
+                                                                                                                                <option value="7046">CETIN (SAP Id: )</option>
+                                                                                                                                <option value="7044">Race Communications, Inc (SAP Id: )</option>
+                                                                                                                                <option value="7029">Rise Asia Technology Limited (SAP Id: )</option>
+                                                                                                                                <option value="7024">Field Solutions Group (SAP Id: )</option>
+                                                                                                                                <option value="7017">Orange OCWS (SAP Id: )</option>
+                                                                                                                                <option value="7010">Ooredoo-Oman (SAP Id: )</option>
+                                                                                                                                <option value="7009">Linkt France (SAP Id: )</option>
+                                                                                                                                <option value="7007">Vast Networks (SAP Id: )</option>
+                                                                                                                                <option value="7005">Bandwidth &amp; Cloud Services Group (SAP Id: )</option>
+                                                                                                                                <option value="7000">Prospect-Customer (SAP Id: )</option>
+                                                                                                                                <option value="6993">SPIE (SAP Id: )</option>
+                                                                                                                                <option value="6974">Orange Liberia (SAP Id: )</option>
+                                                                                                                                <option value="6972">NETLLAR (SAP Id: )</option>
+                                                                                                                                <option value="6971">ARYAN (SAP Id: )</option>
+                                                                                                                                <option value="6969">Nexloop (SAP Id: )</option>
+                                                                                                                                <option value="6959">e-Qual (SAP Id: )</option>
+                                                                                                                                <option value="6957">NVBS (SAP Id: )</option>
+                                                                                                                                <option value="6951">TIBCO (SAP Id: )</option>
+                                                                                                                                <option value="6949">London Web Ltd (SAP Id: )</option>
+                                                                                                                                <option value="6935">Online Systems (SAP Id: )</option>
+                                                                                                                                <option value="6916">DOMOTION BVBA (SAP Id: )</option>
+                                                                                                                                <option value="6907">grand Frais (SAP Id: )</option>
+                                                                                                                                <option value="6905">Destiny NV (SAP Id: )</option>
+                                                                                                                                <option value="6902">Iowa Communications Network (SAP Id: )</option>
+                                                                                                                                <option value="6895">Roots Communications (Malaysia) (SAP Id: )</option>
+                                                                                                                                <option value="6873">ALEF (SAP Id: )</option>
+                                                                                                                                <option value="6861">Ziptelecom (SAP Id: )</option>
+                                                                                                                                <option value="6853">Bell Canada (SAP Id: )</option>
+                                                                                                                                <option value="6843">Telia Carrier (SAP Id: )</option>
+                                                                                                                                <option value="6828">KONTRON (SAP Id: )</option>
+                                                                                                                                <option value="6825">EXATEL S.A. (SAP Id: )</option>
+                                                                                                                                <option value="6823">Axia Technology Partners (SAP Id: )</option>
+                                                                                                                                <option value="6810">Tekniska Polska Sp.zo.o. (SAP Id: )</option>
+                                                                                                                                <option value="6800">NXO (SAP Id: )</option>
+                                                                                                                                <option value="6792">OpenReach (SAP Id: )</option>
+                                                                                                                                <option value="6779">DGS (SAP Id: )</option>
+                                                                                                                                <option value="6775">Vertel (SAP Id: )</option>
+                                                                                                                                <option value="6773">Virtutel Pty Ltd (SAP Id: )</option>
+                                                                                                                                <option value="6766">Ethan Group (SAP Id: )</option>
+                                                                                                                                <option value="6759">SDNBucks (SAP Id: )</option>
+                                                                                                                                <option value="6757">bridgeconnect (SAP Id: )</option>
+                                                                                                                                <option value="6756">KRAFT ENGINEERING LLP (SAP Id: )</option>
+                                                                                                                                <option value="6751">Axiata Group (SAP Id: )</option>
+                                                                                                                                <option value="6880">Viaero_Wireless (SAP Id: )</option>
+                                                                                                                                <option value="6747">Bezeq (SAP Id: )</option>
+                                                                                                                                <option value="6743">actelis (SAP Id: )</option>
+                                                                                                                                <option value="6737">Techinno Solutions Lanka Pty Ltd (SAP Id: )</option>
+                                                                                                                                <option value="6730">INNOVA ITC (SAP Id: )</option>
+                                                                                                                                <option value="6709">viveris Technologies (SAP Id: )</option>
+                                                                                                                                <option value="6708">TransTelecom (SAP Id: )</option>
+                                                                                                                                <option value="6704">Sri Lanka Telecom SLT (SAP Id: )</option>
+                                                                                                                                <option value="6702">Liquid Telecom RSA (SAP Id: )</option>
+                                                                                                                                <option value="6687">Sonatel (SAP Id: )</option>
+                                                                                                                                <option value="6686">Sonatel Multimedia (SAP Id: )</option>
+                                                                                                                                <option value="6683">ER TLC (SAP Id: )</option>
+                                                                                                                                <option value="6678">TNNET (SAP Id: )</option>
+                                                                                                                                <option value="6669">Westcon Global (SAP Id: )</option>
+                                                                                                                                <option value="6668">Commscope (SAP Id: )</option>
+                                                                                                                                <option value="6666">DeltaM2M ApS (SAP Id: )</option>
+                                                                                                                                <option value="6663">JUMBO TOURS ESPAÑA (SAP Id: )</option>
+                                                                                                                                <option value="6661">Irideos (SAP Id: )</option>
+                                                                                                                                <option value="6658">cegecom s.a. (SAP Id: )</option>
+                                                                                                                                <option value="6654">Test Sold-To Customer (SAP Id: )</option>
+                                                                                                                                <option value="6647">Avanzada7 (SAP Id: )</option>
+                                                                                                                                <option value="6638">NATO BPO (SAP Id: )</option>
+                                                                                                                                <option value="6632">OR-19 SoldTo Customer (SAP Id: )</option>
+                                                                                                                                <option value="6630">Uptime Group NV (SAP Id: )</option>
+                                                                                                                                <option value="6628">alphalink tech (SAP Id: )</option>
+                                                                                                                                <option value="6623">nCinga (SAP Id: )</option>
+                                                                                                                                <option value="6621">Orange Senegal (SAP Id: )</option>
+                                                                                                                                <option value="6619">CentriLogic (SAP Id: )</option>
+                                                                                                                                <option value="6613">Metrofiber networkx (SAP Id: )</option>
+                                                                                                                                <option value="6608">Airfaster (SAP Id: )</option>
+                                                                                                                                <option value="6602">Verizon (SAP Id: )</option>
+                                                                                                                                <option value="6596">AXENT (SAP Id: )</option>
+                                                                                                                                <option value="6588">Liquid Telecom SA (SAP Id: )</option>
+                                                                                                                                <option value="6583">My Net Fone (SAP Id: )</option>
+                                                                                                                                <option value="6581">Telia Norge AS (SAP Id: )</option>
+                                                                                                                                <option value="6574">H&amp;r Automatisering Bv (SAP Id: )</option>
+                                                                                                                                <option value="6878">T Force (SAP Id: )</option>
+                                                                                                                                <option value="6565">Dialog (SAP Id: )</option>
+                                                                                                                                <option value="6564">Mobitel (SAP Id: )</option>
+                                                                                                                                <option value="6561">TELUS_CANADA (SAP Id: )</option>
+                                                                                                                                <option value="6559">CEVA Logistics (SAP Id: )</option>
+                                                                                                                                <option value="6551">TSG (SAP Id: )</option>
+                                                                                                                                <option value="6539">Access 4 Pty Ltd (SAP Id: )</option>
+                                                                                                                                <option value="6534">Megafon (SAP Id: )</option>
+                                                                                                                                <option value="6533">OvertheWire (SAP Id: )</option>
+                                                                                                                                <option value="6529">Metronet_IN_USA (SAP Id: )</option>
+                                                                                                                                <option value="6509">2degrees (SAP Id: )</option>
+                                                                                                                                <option value="6508">Spark - Telecom New Zealand (SAP Id: )</option>
+                                                                                                                                <option value="6507">TransGrid (SAP Id: )</option>
+                                                                                                                                <option value="6506">Vocus (SAP Id: )</option>
+                                                                                                                                <option value="6505">Digicel Fiji (SAP Id: )</option>
+                                                                                                                                <option value="6501">channel partner generic (SAP Id: )</option>
+                                                                                                                                <option value="6500">UnClassified (SAP Id: )</option>
+                                                                                                                                <option value="6498">DNA (SAP Id: )</option>
+                                                                                                                                <option value="6494">Hughes USA (SAP Id: )</option>
+                                                                                                                                <option value="6490">UnClassified (SAP Id: )</option>
+                                                                                                                                <option value="6489">UnClassified (SAP Id: )</option>
+                                                                                                                                <option value="6488">UnClassified (SAP Id: )</option>
+                                                                                                                                <option value="6462">UnClassified (SAP Id: )</option>
+                                                                                                                                <option value="6461">UnClassified (SAP Id: )</option>
+                                                                                                                                <option value="6456">speedcast (SAP Id: )</option>
+                                                                                                                                <option value="6454">ABB Switzerland (SAP Id: )</option>
+                                                                                                                                <option value="6453">Maticmind (SAP Id: )</option>
+                                                                                                                                <option value="6418">ENEDIS (SAP Id: )</option>
+                                                                                                                                <option value="6417">Roots Communications (SAP Id: )</option>
+                                                                                                                                <option value="5324">UnClassified (SAP Id: )</option>
+                                                                                                                                <option value="5325">Telenor Serbia (SAP Id: )</option>
+                                                                                                                                <option value="5321">Deutsche Glasfaser (SAP Id: )</option>
+                                                                                                                                <option value="5319">satellite System and service prodivers (SAP Id: )</option>
+                                                                                                                                <option value="5313">Netcracker (SAP Id: )</option>
+                                                                                                                                <option value="5312">FCA Sp. zo.o. (SAP Id: )</option>
+                                                                                                                                <option value="5311">Rogers (SAP Id: )</option>
+                                                                                                                                <option value="5298">Vodaone Nx Gen Services Limited (SAP Id: )</option>
+                                                                                                                                <option value="5290">Globaltelesat (SAP Id: )</option>
+                                                                                                                                <option value="5284">UPC Romania (SAP Id: )</option>
+                                                                                                                                <option value="5283">Spark NZ (SAP Id: )</option>
+                                                                                                                                <option value="5239">Capita (SAP Id: )</option>
+                                                                                                                                <option value="5235">Nordstar Group (SAP Id: )</option>
+                                                                                                                                <option value="5224">PARITEL-GLOBAL CONCEPT (SAP Id: )</option>
+                                                                                                                                <option value="5173">Wind Hellas (SAP Id: )</option>
+                                                                                                                                <option value="5122">Network Edge (SAP Id: )</option>
+                                                                                                                                <option value="4981">9 Office (SAP Id: )</option>
+                                                                                                                                <option value="4965">On Q Communications (SAP Id: )</option>
+                                                                                                                                <option value="4961">KCom (SAP Id: )</option>
+                                                                                                                                <option value="4946">Detasad (SAP Id: )</option>
+                                                                                                                                <option value="4944">Lafon (SAP Id: )</option>
+                                                                                                                                <option value="4943">ByBox Vodafone UK (SAP Id: )</option>
+                                                                                                                                <option value="4928">Zain Congo (SAP Id: )</option>
+                                                                                                                                <option value="4891">Telenor Sweden (SAP Id: )</option>
+                                                                                                                                <option value="4890">Vodafone Group (SAP Id: )</option>
+                                                                                                                                <option value="4880">Vodafone Hungary (SAP Id: )</option>
+                                                                                                                                <option value="4871">Gestelcom (SAP Id: )</option>
+                                                                                                                                <option value="4870">Migros (SAP Id: )</option>
+                                                                                                                                <option value="4861">Nokia Hong Kong (SAP Id: )</option>
+                                                                                                                                <option value="4853">Springlab (SAP Id: )</option>
+                                                                                                                                <option value="4848">Other (SAP Id: )</option>
+                                                                                                                                <option value="4804">Shenzhen Jfwireless IT Co Ltd (SAP Id: )</option>
+                                                                                                                                <option value="4800">EDF (SAP Id: )</option>
+                                                                                                                                <option value="4797">PetroChina (SAP Id: )</option>
+                                                                                                                                <option value="4785">Defensie (SAP Id: )</option>
+                                                                                                                                <option value="4764">Innovation Wing (SAP Id: )</option>
+                                                                                                                                <option value="4754">DCI (SAP Id: )</option>
+                                                                                                                                <option value="4748">Guangzhou Telecom (SAP Id: )</option>
+                                                                                                                                <option value="4747">Telecom Easiness / Beijing Unicom (SAP Id: )</option>
+                                                                                                                                <option value="4746">Satecom (SAP Id: )</option>
+                                                                                                                                <option value="4745">Sky Stream (SAP Id: )</option>
+                                                                                                                                <option value="4738">Node 4 (SAP Id: )</option>
+                                                                                                                                <option value="4734">Numericable (SAP Id: )</option>
+                                                                                                                                <option value="4729">PBXL (SAP Id: )</option>
+                                                                                                                                <option value="4726">Wireless Services Center (SAP Id: )</option>
+                                                                                                                                <option value="4721">Quickline (SAP Id: )</option>
+                                                                                                                                <option value="4720">Sabafon (SAP Id: )</option>
+                                                                                                                                <option value="4718">ENC (SAP Id: )</option>
+                                                                                                                                <option value="4717">CS (SAP Id: )</option>
+                                                                                                                                <option value="4716">Raytheon Systems Co (SAP Id: )</option>
+                                                                                                                                <option value="4715">Scarlet Belgium (SAP Id: )</option>
+                                                                                                                                <option value="4714">Electrosvyaz Volgograd (SAP Id: )</option>
+                                                                                                                                <option value="4713">Sight and Sound LTD (SAP Id: )</option>
+                                                                                                                                <option value="4712">DFI Service (SAP Id: )</option>
+                                                                                                                                <option value="4710">SynchCOM (SAP Id: )</option>
+                                                                                                                                <option value="4709">Ministerie Van Defensie (SAP Id: )</option>
+                                                                                                                                <option value="4708">CIS S.A.L (SAP Id: )</option>
+                                                                                                                                <option value="4707">CSNG CO (SAP Id: )</option>
+                                                                                                                                <option value="4706">Stadtwerke Hannover AG (SAP Id: )</option>
+                                                                                                                                <option value="4705">Prisma S.A (SAP Id: )</option>
+                                                                                                                                <option value="4704">MikroGoran D.o.o. (SAP Id: )</option>
+                                                                                                                                <option value="4703">XNet (SAP Id: )</option>
+                                                                                                                                <option value="4702">Spirit Communications (SAP Id: )</option>
+                                                                                                                                <option value="4700">Datatel Russia (SAP Id: )</option>
+                                                                                                                                <option value="4699">Oy EKM Service AB (SAP Id: )</option>
+                                                                                                                                <option value="4697">Cornwall Country Council (SAP Id: )</option>
+                                                                                                                                <option value="4696">TMI (SAP Id: )</option>
+                                                                                                                                <option value="4695">SNC (SAP Id: )</option>
+                                                                                                                                <option value="4694">Nort (SAP Id: )</option>
+                                                                                                                                <option value="4693">Eneco (SAP Id: )</option>
+                                                                                                                                <option value="4692">RATP (SAP Id: )</option>
+                                                                                                                                <option value="4691">TLS_LUXEMBOURG (SAP Id: )</option>
+                                                                                                                                <option value="4690">TLS_THAILAND (SAP Id: )</option>
+                                                                                                                                <option value="4689">TLS China (SAP Id: )</option>
+                                                                                                                                <option value="4688">TLS_SWITZERLAND (SAP Id: )</option>
+                                                                                                                                <option value="4687">TLS_PORTUGAL (SAP Id: )</option>
+                                                                                                                                <option value="4686">TLS_NETHERLANDS (SAP Id: )</option>
+                                                                                                                                <option value="4685">TLS_Belgium (SAP Id: )</option>
+                                                                                                                                <option value="4684">TLS_Israel (SAP Id: )</option>
+                                                                                                                                <option value="4683">TLS_SPAIN (SAP Id: )</option>
+                                                                                                                                <option value="4682">TLS_France (SAP Id: )</option>
+                                                                                                                                <option value="4681">TLS_Italy (SAP Id: )</option>
+                                                                                                                                <option value="4680">TLS_UK (SAP Id: )</option>
+                                                                                                                                <option value="4679">TLS_Germany (SAP Id: )</option>
+                                                                                                                                <option value="4678">Airespring (SAP Id: )</option>
+                                                                                                                                <option value="4674">Pacific Blue (SAP Id: )</option>
+                                                                                                                                <option value="4672">Antrist (SAP Id: )</option>
+                                                                                                                                <option value="4671">Envoy Networks (SAP Id: )</option>
+                                                                                                                                <option value="4482">Nam Truong Son Co. Ltd (SAP Id: )</option>
+                                                                                                                                <option value="4370">Celcom (SAP Id: )</option>
+                                                                                                                                <option value="4371">Ceskeradiokummunikace (SAP Id: )</option>
+                                                                                                                                <option value="4374">Claranet (SAP Id: )</option>
+                                                                                                                                <option value="4377">Combridge (SAP Id: )</option>
+                                                                                                                                <option value="4380">Crnogorski Telekom (SAP Id: )</option>
+                                                                                                                                <option value="4383">CSSI (SAP Id: )</option>
+                                                                                                                                <option value="4389">DHL Solutions (SAP Id: )</option>
+                                                                                                                                <option value="4390">Digitel (SAP Id: )</option>
+                                                                                                                                <option value="4392">Dong Energy (SAP Id: )</option>
+                                                                                                                                <option value="4400">Elkotek (SAP Id: )</option>
+                                                                                                                                <option value="4102">Broadnet (SAP Id: )</option>
+                                                                                                                                <option value="4134">Broadview (SAP Id: )</option>
+                                                                                                                                <option value="4140">BSNL BD (SAP Id: )</option>
+                                                                                                                                <option value="4177">Cantv (SAP Id: )</option>
+                                                                                                                                <option value="4045">Bakrie (SAP Id: )</option>
+                                                                                                                                <option value="4046">Bank Audi (SAP Id: )</option>
+                                                                                                                                <option value="4050">BBNed (SAP Id: )</option>
+                                                                                                                                <option value="4058">BH Telecom (SAP Id: )</option>
+                                                                                                                                <option value="1990">Deutsche Telekom Hungary (SAP Id: )</option>
+                                                                                                                                <option value="1971">Hipcom Australia (SAP Id: )</option>
+                                                                                                                                <option value="4243">Magyar Telekom (SAP Id: )</option>
+                                                                                                                                <option value="4241">Infratel S.P. z.o.o. (SAP Id: )</option>
+                                                                                                                                <option value="4608">Broadview Networks (SAP Id: )</option>
+                                                                                                                                <option value="4610">ETECSA (SAP Id: )</option>
+                                                                                                                                <option value="4613">Abissnet (SAP Id: )</option>
+                                                                                                                                <option value="4614">Adista (SAP Id: )</option>
+                                                                                                                                <option value="4615">Adventus (SAP Id: )</option>
+                                                                                                                                <option value="4360">Access Logistics (SAP Id: )</option>
+                                                                                                                                <option value="4616">Alaloop (SAP Id: )</option>
+                                                                                                                                <option value="4617">AR Telecom (SAP Id: )</option>
+                                                                                                                                <option value="4618">Ascom (SAP Id: )</option>
+                                                                                                                                <option value="4619">Astelit (SAP Id: )</option>
+                                                                                                                                <option value="4620">Batelco (SAP Id: )</option>
+                                                                                                                                <option value="4621">Belabstelecom Ltd. (SAP Id: )</option>
+                                                                                                                                <option value="4622">BitsData (SAP Id: )</option>
+                                                                                                                                <option value="4623">Brutele (SAP Id: )</option>
+                                                                                                                                <option value="4624">Capcom (SAP Id: )</option>
+                                                                                                                                <option value="4625">Careitec A/S (SAP Id: )</option>
+                                                                                                                                <option value="4626">Channel Telecom (SAP Id: )</option>
+                                                                                                                                <option value="4642">Corporate Hungary (SAP Id: )</option>
+                                                                                                                                <option value="4643">Corporate Indonesia (SAP Id: )</option>
+                                                                                                                                <option value="4644">Corporate Mexico (SAP Id: )</option>
+                                                                                                                                <option value="4645">Corporate Netherlands (SAP Id: )</option>
+                                                                                                                                <option value="4646">Corporate Russia (SAP Id: )</option>
+                                                                                                                                <option value="4647">Corporate Australia (SAP Id: )</option>
+                                                                                                                                <option value="4648">Corporate South Africa (SAP Id: )</option>
+                                                                                                                                <option value="4653">Corporate Egypt (SAP Id: )</option>
+                                                                                                                                <option value="4667">Unclassified (SAP Id: )</option>
+                                                                                                                                <option value="4414">ETPI (Eastern Telecom) (SAP Id: )</option>
+                                                                                                                                <option value="4670">Ironton Telephone (SAP Id: )</option>
+                                                                                                                                <option value="4416">EVN (SAP Id: )</option>
+                                                                                                                                <option value="4424">FPT (SAP Id: )</option>
+                                                                                                                                <option value="4427">Gamma Telecom (SAP Id: )</option>
+                                                                                                                                <option value="4431">Globe (SAP Id: )</option>
+                                                                                                                                <option value="4432">Golden Telecom Ukrain (SAP Id: )</option>
+                                                                                                                                <option value="4434">Grenztkraft Werke (SAP Id: )</option>
+                                                                                                                                <option value="4439">Inclarity (SAP Id: )</option>
+                                                                                                                                <option value="4440">Jaring (SAP Id: )</option>
+                                                                                                                                <option value="4444">Kordia (SAP Id: )</option>
+                                                                                                                                <option value="4446">Lightspeed Communications (SAP Id: )</option>
+                                                                                                                                <option value="4448">ICP Logistica (SAP Id: )</option>
+                                                                                                                                <option value="4450">Indosat (SAP Id: )</option>
+                                                                                                                                <option value="4453">Innove (SAP Id: )</option>
+                                                                                                                                <option value="4201">Bulgaria Telecom (SAP Id: )</option>
+                                                                                                                                <option value="4457">Invitel (SAP Id: )</option>
+                                                                                                                                <option value="4461">Itelsi (SAP Id: )</option>
+                                                                                                                                <option value="4207">Cyta Hellas (SAP Id: )</option>
+                                                                                                                                <option value="4464">Lintasarta (SAP Id: )</option>
+                                                                                                                                <option value="4211">DT T-Com (SAP Id: )</option>
+                                                                                                                                <option value="4467">Maxcom (SAP Id: )</option>
+                                                                                                                                <option value="4471">Meralco (SAP Id: )</option>
+                                                                                                                                <option value="4216">ECI India (SAP Id: )</option>
+                                                                                                                                <option value="4475">Mobinil (SAP Id: )</option>
+                                                                                                                                <option value="4476">Orange Bulgaria (SAP Id: )</option>
+                                                                                                                                <option value="4481">Munisys (SAP Id: )</option>
+                                                                                                                                <option value="4227">GTS Hungary (SAP Id: )</option>
+                                                                                                                                <option value="4228">Harmonized Sys Egypt (SAP Id: )</option>
+                                                                                                                                <option value="4231">Hipcom (SAP Id: )</option>
+                                                                                                                                <option value="4233">iWay (SAP Id: )</option>
+                                                                                                                                <option value="4491">Nfon (SAP Id: )</option>
+                                                                                                                                <option value="4497">NTT (SAP Id: )</option>
+                                                                                                                                <option value="4245">MTS (SAP Id: )</option>
+                                                                                                                                <option value="4247">Neo-Sky (SAP Id: )</option>
+                                                                                                                                <option value="4506">PCCW (SAP Id: )</option>
+                                                                                                                                <option value="4255">Obiane (SAP Id: )</option>
+                                                                                                                                <option value="4512">Promacom AB (SAP Id: )</option>
+                                                                                                                                <option value="4259">P&amp;T Luxembourg (SAP Id: )</option>
+                                                                                                                                <option value="4517">PT Telkom (SAP Id: )</option>
+                                                                                                                                <option value="4263">PLDT Philippines (SAP Id: )</option>
+                                                                                                                                <option value="4519">Quante Netzwe (SAP Id: )</option>
+                                                                                                                                <option value="4269">STC (SAP Id: )</option>
+                                                                                                                                <option value="4271">T-HT Croatia (SAP Id: )</option>
+                                                                                                                                <option value="4530">Route 2 (SAP Id: )</option>
+                                                                                                                                <option value="4532">RWE (SAP Id: )</option>
+                                                                                                                                <option value="4536">SBN (SAP Id: )</option>
+                                                                                                                                <option value="4540">Singtel (SAP Id: )</option>
+                                                                                                                                <option value="4546">Slovak Telecom (SAP Id: )</option>
+                                                                                                                                <option value="4295">Transpac (SAP Id: )</option>
+                                                                                                                                <option value="4551">Sri Lanka Telecom (SAP Id: )</option>
+                                                                                                                                <option value="4296">True Thailand (SAP Id: )</option>
+                                                                                                                                <option value="4553">STE De Telecom De Andorra (SAP Id: )</option>
+                                                                                                                                <option value="4298">VimpelCom (SAP Id: )</option>
+                                                                                                                                <option value="4302">Vodafone Egypt (SAP Id: )</option>
+                                                                                                                                <option value="4560">Tedata (SAP Id: )</option>
+                                                                                                                                <option value="4562">Telco (SAP Id: )</option>
+                                                                                                                                <option value="4563">Telekom Malaysia (SAP Id: )</option>
+                                                                                                                                <option value="4310">Vodafone Turkey (SAP Id: )</option>
+                                                                                                                                <option value="4567">Telmex (SAP Id: )</option>
+                                                                                                                                <option value="4312">WestCall (SAP Id: )</option>
+                                                                                                                                <option value="4573">TNF (SAP Id: )</option>
+                                                                                                                                <option value="4574">TR Services (SAP Id: )</option>
+                                                                                                                                <option value="4576">Umniah (SAP Id: )</option>
+                                                                                                                                <option value="4580">Vanilla IP (SAP Id: )</option>
+                                                                                                                                <option value="4325">Orange Morocco (SAP Id: )</option>
+                                                                                                                                <option value="4327">Orange Romania (SAP Id: )</option>
+                                                                                                                                <option value="4583">ViaTel (SAP Id: )</option>
+                                                                                                                                <option value="4586">Vivacom (SAP Id: )</option>
+                                                                                                                                <option value="4588">VNPT (SAP Id: )</option>
+                                                                                                                                <option value="4594">Zain Jordan (SAP Id: )</option>
+                                                                                                                                <option value="4596">Zimbabwe Online (SAP Id: )</option>
+                                                                                                                                <option value="4599">FT Net (SAP Id: )</option>
+                                                                                                                                <option value="4604">MTN South Africa (SAP Id: )</option>
+                                                                                                                                <option value="4605">Telkom (SAP Id: )</option>
+                                                                                                                                <option value="4606">Momentum Telecom (SAP Id: )</option>
+                                                                                                                                <option value="4607">CTD (SAP Id: )</option>
+                                                                                                                                <option value="4181">Mia Telecom (SAP Id: )</option>
+                                                                                                                                <option value="4176">Guangdonc Cable TV Networks (SAP Id: )</option>
+                                                                                                                                <option value="4173">AM (SAP Id: )</option>
+                                                                                                                                <option value="4169">Euskaltel (SAP Id: )</option>
+                                                                                                                                <option value="4168">Frontier Networks (SAP Id: )</option>
+                                                                                                                                <option value="4148">Tata Communications Lanka (SAP Id: )</option>
+                                                                                                                                <option value="4141">NetXUSA (SAP Id: )</option>
+                                                                                                                                <option value="4137">Hoyts Cinemas (SAP Id: )</option>
+                                                                                                                                <option value="4126">CGM (SAP Id: )</option>
+                                                                                                                                <option value="4121">TNS (Transaction Network Services) (SAP Id: )</option>
+                                                                                                                                <option value="4120">MyRepublic (SAP Id: )</option>
+                                                                                                                                <option value="4103">CTI (SAP Id: )</option>
+                                                                                                                                <option value="4061">WISLA (SAP Id: )</option>
+                                                                                                                                <option value="4054">Telco Impex Co. Ltd (SAP Id: )</option>
+                                                                                                                                <option value="4051">Altice Group (SAP Id: )</option>
+                                                                                                                                <option value="4047">Comarch PL (SAP Id: )</option>
+                                                                                                                                <option value="3895">Guangdong Guangxin Communications Services (SAP Id: )</option>
+                                                                                                                                <option value="3893">DTS (SAP Id: )</option>
+                                                                                                                                <option value="3879">Webaxys (SAP Id: )</option>
+                                                                                                                                <option value="3874">StarHub Singapore (SAP Id: )</option>
+                                                                                                                                <option value="3873">Arvato Distribution GmbH (SAP Id: )</option>
+                                                                                                                                <option value="3864">IsNet (SAP Id: )</option>
+                                                                                                                                <option value="3861">JCDecaux (SAP Id: )</option>
+                                                                                                                                <option value="3860">Wan Easy Telecom (SAP Id: )</option>
+                                                                                                                                <option value="3858">Thales eSecurity (SAP Id: )</option>
+                                                                                                                                <option value="3857">Oracle (SAP Id: )</option>
+                                                                                                                                <option value="3853">Sewan (SAP Id: )</option>
+                                                                                                                                <option value="3832">Telefonica Germany (SAP Id: )</option>
+                                                                                                                                <option value="3823">ITX (SAP Id: )</option>
+                                                                                                                                <option value="3814">Xerox Business Solutions (SAP Id: )</option>
+                                                                                                                                <option value="3812">Wirefree Broadband (SAP Id: )</option>
+                                                                                                                                <option value="3789">RigNet (SAP Id: )</option>
+                                                                                                                                <option value="3783">Migrol (SAP Id: )</option>
+                                                                                                                                <option value="3782">Alpiq Intec (SAP Id: )</option>
+                                                                                                                                <option value="3773">Satellite (SAP Id: )</option>
+                                                                                                                                <option value="3758">Mabco (SAP Id: )</option>
+                                                                                                                                <option value="3732">Atos Worldline France (SAP Id: )</option>
+                                                                                                                                <option value="3729">Living Objects (SAP Id: )</option>
+                                                                                                                                <option value="3725">French Ministry (SAP Id: )</option>
+                                                                                                                                <option value="3716">Netia - Ericsson (SAP Id: )</option>
+                                                                                                                                <option value="3703">Nashua (SAP Id: )</option>
+                                                                                                                                <option value="3701">Redtone (SAP Id: )</option>
+                                                                                                                                <option value="3690">Vecima Networks (SAP Id: )</option>
+                                                                                                                                <option value="3680">Cogeco (SAP Id: )</option>
+                                                                                                                                <option value="3672">Birch Communications (SAP Id: )</option>
+                                                                                                                                <option value="3669">Tesuco (SAP Id: )</option>
+                                                                                                                                <option value="3664">Siphon Networks Netherlands (SAP Id: )</option>
+                                                                                                                                <option value="3663">Orange Russia (SAP Id: )</option>
+                                                                                                                                <option value="3662">Novelsat (SAP Id: )</option>
+                                                                                                                                <option value="3659">Zayo Networks (SAP Id: )</option>
+                                                                                                                                <option value="3657">BTel (SAP Id: )</option>
+                                                                                                                                <option value="3655">Dhiraagu Telecom (SAP Id: )</option>
+                                                                                                                                <option value="2227">Telespazio France (SAP Id: )</option>
+                                                                                                                                <option value="2048">Omni Logic (SAP Id: )</option>
+                                                                                                                                <option value="1">Generic (SAP Id: )</option>
+                                                                                                                                <option value="2049">OneXS (SAP Id: )</option>
+                                                                                                                                <option value="2050">CAT Telecom (SAP Id: )</option>
+                                                                                                                                <option value="2051">Geoproyecta Guatemala (SAP Id: )</option>
+                                                                                                                                <option value="2052">OPT New Caledonia (SAP Id: )</option>
+                                                                                                                                <option value="2054">Orange Business Lebanon (SAP Id: )</option>
+                                                                                                                                <option value="2055">Orange AMEA (SAP Id: )</option>
+                                                                                                                                <option value="2056">Orcon (SAP Id: )</option>
+                                                                                                                                <option value="2057">Geonet (SAP Id: )</option>
+                                                                                                                                <option value="2059">Overture Networks (SAP Id: )</option>
+                                                                                                                                <option value="2060">Intellect Telecom (SAP Id: )</option>
+                                                                                                                                <option value="2062">Platform Networks (SAP Id: )</option>
+                                                                                                                                <option value="2065">Prasarana (SAP Id: )</option>
+                                                                                                                                <option value="2066">Premier Technologies (SAP Id: )</option>
+                                                                                                                                <option value="2068">Railtel (SAP Id: )</option>
+                                                                                                                                <option value="2069">Railway (SAP Id: )</option>
+                                                                                                                                <option value="2070">Reliance Communications (SAP Id: )</option>
+                                                                                                                                <option value="2071">Reutech Solutions (SAP Id: )</option>
+                                                                                                                                <option value="2073">RTComm (SAP Id: )</option>
+                                                                                                                                <option value="2075">Sait Zenitel (SAP Id: )</option>
+                                                                                                                                <option value="2077">Satec (SAP Id: )</option>
+                                                                                                                                <option value="2078">IVENT (SAP Id: )</option>
+                                                                                                                                <option value="2079">Savant (SAP Id: )</option>
+                                                                                                                                <option value="2081">Servassure (SAP Id: )</option>
+                                                                                                                                <option value="2082">Silvo Telco (SAP Id: )</option>
+                                                                                                                                <option value="2083">SIM (SAP Id: )</option>
+                                                                                                                                <option value="2085">SLC (SAP Id: )</option>
+                                                                                                                                <option value="2086">Voicenet UK (SAP Id: )</option>
+                                                                                                                                <option value="2087">Kertel (SAP Id: )</option>
+                                                                                                                                <option value="2088">Sonet (SAP Id: )</option>
+                                                                                                                                <option value="2090">Maxim Solutions (SAP Id: )</option>
+                                                                                                                                <option value="2093">Talk Talk (SAP Id: )</option>
+                                                                                                                                <option value="2096">Tata Teleservices India (SAP Id: )</option>
+                                                                                                                                <option value="2097">Tecteo (SAP Id: )</option>
+                                                                                                                                <option value="2098">Tekun (SAP Id: )</option>
+                                                                                                                                <option value="2100">Tele (SAP Id: )</option>
+                                                                                                                                <option value="2107">Telefonica Spain (SAP Id: )</option>
+                                                                                                                                <option value="2108">Telefonica Guatemala (SAP Id: )</option>
+                                                                                                                                <option value="2109">Telefonica Mexico (SAP Id: )</option>
+                                                                                                                                <option value="2115">Telepacific C (SAP Id: )</option>
+                                                                                                                                <option value="2116">Telespectrum (SAP Id: )</option>
+                                                                                                                                <option value="2118">MGTS Russia (SAP Id: )</option>
+                                                                                                                                <option value="2121">Telindus Spain (SAP Id: )</option>
+                                                                                                                                <option value="2122">Telkomsel Ind (SAP Id: )</option>
+                                                                                                                                <option value="2123">AddComm (SAP Id: )</option>
+                                                                                                                                <option value="2124">Time.com (SAP Id: )</option>
+                                                                                                                                <option value="2126">TNM (SAP Id: )</option>
+                                                                                                                                <option value="2127">TNZ (SAP Id: )</option>
+                                                                                                                                <option value="2129">MobilityOne (SAP Id: )</option>
+                                                                                                                                <option value="2131">Turk Telecom (SAP Id: )</option>
+                                                                                                                                <option value="2132">Turkcell (SAP Id: )</option>
+                                                                                                                                <option value="2134">UIH (SAP Id: )</option>
+                                                                                                                                <option value="2135">Corporate UK (SAP Id: )</option>
+                                                                                                                                <option value="2136">Unet (SAP Id: )</option>
+                                                                                                                                <option value="2137">United Bank Limited (SAP Id: )</option>
+                                                                                                                                <option value="2139">UPC Hungary (SAP Id: )</option>
+                                                                                                                                <option value="2140">Utility Company (SAP Id: )</option>
+                                                                                                                                <option value="2143">Vodacom (SAP Id: )</option>
+                                                                                                                                <option value="2144">Vodafone Czech Republic (SAP Id: )</option>
+                                                                                                                                <option value="2145">Vodafone Essar (SAP Id: )</option>
+                                                                                                                                <option value="2148">Voicenet Greece (SAP Id: )</option>
+                                                                                                                                <option value="2150">VTelecoms (SAP Id: )</option>
+                                                                                                                                <option value="2151">Wind Italy (SAP Id: )</option>
+                                                                                                                                <option value="2153">XO Communications (SAP Id: )</option>
+                                                                                                                                <option value="2155">Ziraat Bank (SAP Id: )</option>
+                                                                                                                                <option value="2156">Datang (SAP Id: )</option>
+                                                                                                                                <option value="2158">SkyVision (SAP Id: )</option>
+                                                                                                                                <option value="2159">Corporate France (SAP Id: )</option>
+                                                                                                                                <option value="2160">MOD France (SAP Id: )</option>
+                                                                                                                                <option value="2162">Mobiltel BG (SAP Id: )</option>
+                                                                                                                                <option value="2163">Zain KSA (SAP Id: )</option>
+                                                                                                                                <option value="2165">Alestra (SAP Id: )</option>
+                                                                                                                                <option value="2167">Bayou Well Services (SAP Id: )</option>
+                                                                                                                                <option value="2168">Mia Russia (SAP Id: )</option>
+                                                                                                                                <option value="1914">Adco (SAP Id: )</option>
+                                                                                                                                <option value="2170">SBSNM (SAP Id: )</option>
+                                                                                                                                <option value="1915">Aero Vertical (SAP Id: )</option>
+                                                                                                                                <option value="1916">Afinis (SAP Id: )</option>
+                                                                                                                                <option value="1918">Aircel Business (SAP Id: )</option>
+                                                                                                                                <option value="1919">Airtel (SAP Id: )</option>
+                                                                                                                                <option value="2175">Earthlink (SAP Id: )</option>
+                                                                                                                                <option value="2179">Turknet (SAP Id: )</option>
+                                                                                                                                <option value="1925">America Movil (SAP Id: )</option>
+                                                                                                                                <option value="1926">Antel (SAP Id: )</option>
+                                                                                                                                <option value="2182">Com4Innov (SAP Id: )</option>
+                                                                                                                                <option value="1927">AVC One UK (SAP Id: )</option>
+                                                                                                                                <option value="2183">Kvantel (SAP Id: )</option>
+                                                                                                                                <option value="1930">Banksys (Atos Worldline) (SAP Id: )</option>
+                                                                                                                                <option value="1931">Bayantel (SAP Id: )</option>
+                                                                                                                                <option value="1933">BT Italy (SAP Id: )</option>
+                                                                                                                                <option value="2191">Mobistar - Ericsson (SAP Id: )</option>
+                                                                                                                                <option value="1936">Castor Networks (SAP Id: )</option>
+                                                                                                                                <option value="2192">RosTelecom (SAP Id: )</option>
+                                                                                                                                <option value="2193">NEO (SAP Id: )</option>
+                                                                                                                                <option value="1938">Chess Telecom (SAP Id: )</option>
+                                                                                                                                <option value="2194">Hot (SAP Id: )</option>
+                                                                                                                                <option value="1939">China Telecom (SAP Id: )</option>
+                                                                                                                                <option value="1940">Claro (SAP Id: )</option>
+                                                                                                                                <option value="2196">HP Malaysia (SAP Id: )</option>
+                                                                                                                                <option value="1941">CieNum (SAP Id: )</option>
+                                                                                                                                <option value="2197">ThaiCom (SAP Id: )</option>
+                                                                                                                                <option value="1942">Clec Turkey (SAP Id: )</option>
+                                                                                                                                <option value="2198">Japan Defence (SAP Id: )</option>
+                                                                                                                                <option value="2199">ChinaSatCom (SAP Id: )</option>
+                                                                                                                                <option value="1944">Afrotronics (SAP Id: )</option>
+                                                                                                                                <option value="2200">Mould Network (SAP Id: )</option>
+                                                                                                                                <option value="1945">Comstar (SAP Id: )</option>
+                                                                                                                                <option value="2201">SVS Telecom (SAP Id: )</option>
+                                                                                                                                <option value="1946">Corporate Spain (SAP Id: )</option>
+                                                                                                                                <option value="1947">Corporate BeNeLux (SAP Id: )</option>
+                                                                                                                                <option value="2203">CenturyLink (SAP Id: )</option>
+                                                                                                                                <option value="1948">Corporate India (SAP Id: )</option>
+                                                                                                                                <option value="1949">Corporate Japan (SAP Id: )</option>
+                                                                                                                                <option value="2205">UniData (SAP Id: )</option>
+                                                                                                                                <option value="1950">Corporate Kazakhstan (SAP Id: )</option>
+                                                                                                                                <option value="2206">Border Contro (SAP Id: )</option>
+                                                                                                                                <option value="1951">Corporate Malaysia (SAP Id: )</option>
+                                                                                                                                <option value="2207">HTC (SAP Id: )</option>
+                                                                                                                                <option value="2208">SES Astra (SAP Id: )</option>
+                                                                                                                                <option value="1953">Corporate Singapore (SAP Id: )</option>
+                                                                                                                                <option value="2209">Hyphen Group (SAP Id: )</option>
+                                                                                                                                <option value="1954">Corporate Syria (SAP Id: )</option>
+                                                                                                                                <option value="2210">I Burst (SAP Id: )</option>
+                                                                                                                                <option value="1955">Empresa Telefonica De Pereira (SAP Id: )</option>
+                                                                                                                                <option value="1956">Corporate Turkey (SAP Id: )</option>
+                                                                                                                                <option value="2213">Marcatel Mex (SAP Id: )</option>
+                                                                                                                                <option value="1958">Cox Communications (SAP Id: )</option>
+                                                                                                                                <option value="1959">CTK (SAP Id: )</option>
+                                                                                                                                <option value="2216">Voztelecom (SAP Id: )</option>
+                                                                                                                                <option value="1961">Datasharp UK (SAP Id: )</option>
+                                                                                                                                <option value="2217">CableVision (SAP Id: )</option>
+                                                                                                                                <option value="1962">Dialog System (SAP Id: )</option>
+                                                                                                                                <option value="2218">Comcast Cable (SAP Id: )</option>
+                                                                                                                                <option value="1963">Devopsys (SAP Id: )</option>
+                                                                                                                                <option value="2219">Vega Space (SAP Id: )</option>
+                                                                                                                                <option value="1964">DSMI (SAP Id: )</option>
+                                                                                                                                <option value="1965">DPWH (SAP Id: )</option>
+                                                                                                                                <option value="2221">Tot (SAP Id: )</option>
+                                                                                                                                <option value="1966">Herault Network (SAP Id: )</option>
+                                                                                                                                <option value="2222">Orsyp (SAP Id: )</option>
+                                                                                                                                <option value="2223">OA Sophia-Ant (SAP Id: )</option>
+                                                                                                                                <option value="1968">DU (SAP Id: )</option>
+                                                                                                                                <option value="2224">Numix (SAP Id: )</option>
+                                                                                                                                <option value="1969">Hexanet (SAP Id: )</option>
+                                                                                                                                <option value="1973">Engin (SAP Id: )</option>
+                                                                                                                                <option value="1974">Ergatel (SAP Id: )</option>
+                                                                                                                                <option value="1976">Eser Telekom (SAP Id: )</option>
+                                                                                                                                <option value="1977">ETB/SB (SAP Id: )</option>
+                                                                                                                                <option value="1978">Corporate China (SAP Id: )</option>
+                                                                                                                                <option value="1981">Faroese Telecom (SAP Id: )</option>
+                                                                                                                                <option value="1983">Forthnet (SAP Id: )</option>
+                                                                                                                                <option value="1985">Frontier Communications (SAP Id: )</option>
+                                                                                                                                <option value="1987">German Teleco (SAP Id: )</option>
+                                                                                                                                <option value="1989">GITN (SAP Id: )</option>
+                                                                                                                                <option value="1991">Golden Telecom Russia (SAP Id: )</option>
+                                                                                                                                <option value="1993">Griffin (SAP Id: )</option>
+                                                                                                                                <option value="1996">HKBN (SAP Id: )</option>
+                                                                                                                                <option value="1997">Hrvatski Telekom (SAP Id: )</option>
+                                                                                                                                <option value="1998">I Node (UPC) (SAP Id: )</option>
+                                                                                                                                <option value="1999">Icon + (SAP Id: )</option>
+                                                                                                                                <option value="2000">IINET (SAP Id: )</option>
+                                                                                                                                <option value="2001">IMC (SAP Id: )</option>
+                                                                                                                                <option value="2004">Inradios (SAP Id: )</option>
+                                                                                                                                <option value="2005">InTechnology (SAP Id: )</option>
+                                                                                                                                <option value="2006">Integra Telecom (SAP Id: )</option>
+                                                                                                                                <option value="2008">Interior Mini (SAP Id: )</option>
+                                                                                                                                <option value="2009">Internal (SAP Id: )</option>
+                                                                                                                                <option value="2010">Internet Solutions (SAP Id: )</option>
+                                                                                                                                <option value="2012">Ipkom (SAP Id: )</option>
+                                                                                                                                <option value="2013">Hoist Group (SAP Id: )</option>
+                                                                                                                                <option value="2016">Lagoon (SAP Id: )</option>
+                                                                                                                                <option value="2018">LTE Telecom P (SAP Id: )</option>
+                                                                                                                                <option value="2020">Macrolan (SAP Id: )</option>
+                                                                                                                                <option value="2021">Market Requirement (SAP Id: )</option>
+                                                                                                                                <option value="2024">Media Sat Rom (SAP Id: )</option>
+                                                                                                                                <option value="2025">Metaswitch (SAP Id: )</option>
+                                                                                                                                <option value="2026">Metro Digital (SAP Id: )</option>
+                                                                                                                                <option value="2027">Metronet (SAP Id: )</option>
+                                                                                                                                <option value="2028">Military ISP (SAP Id: )</option>
+                                                                                                                                <option value="2029">Mindef Belgium (SAP Id: )</option>
+                                                                                                                                <option value="2030">Mob ENT Services (SAP Id: )</option>
+                                                                                                                                <option value="2032">Mobilink (SAP Id: )</option>
+                                                                                                                                <option value="2033">Mobily (SAP Id: )</option>
+                                                                                                                                <option value="2034">Nadra (SAP Id: )</option>
+                                                                                                                                <option value="2035">National Voice + Data (SAP Id: )</option>
+                                                                                                                                <option value="2037">Net4India (SAP Id: )</option>
+                                                                                                                                <option value="2039">Nianet (SAP Id: )</option>
+                                                                                                                                <option value="2040">Test Customer (SAP Id: )</option>
+                                                                                                                                <option value="2042">Telefonica O2 UK (SAP Id: )</option>
+                                                                                                                                <option value="2043">OA Singapore (SAP Id: )</option>
+                                                                                                                                <option value="2044">OAF Partners (SAP Id: )</option>
+                                                                                                                                <option value="2045">OBS (SAP Id: )</option>
+                                                                                                                                <option value="2046">OBS Sat BU (SAP Id: )</option>
+                                                                                                                                <option value="2225">SAP_PalceHolder (SAP Id: )</option>
+                                                                            </select><span class="select2 select2-container select2-container--bootstrap4" dir="ltr" data-select2-id="1"><span class="selection"><span class="select2-selection select2-selection--single" role="combobox" aria-haspopup="true" aria-expanded="false" tabindex="0" aria-labelledby="select2-customer_id-container"><span class="select2-selection__rendered" id="select2-customer_id-container" role="textbox" aria-readonly="true" title="Deutsche Glasfaser Wholesale GmbH (SAP Id: 11960)">Deutsche Glasfaser Wholesale GmbH (SAP Id: 11960)</span><span class="select2-selection__arrow" role="presentation"><b role="presentation"></b></span></span></span><span class="dropdown-wrapper" aria-hidden="true"></span></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                    <label class="form-label required">Customer's Username (for mailing)</label>
+                                    <select class="form-select form-select-sm select2 select2-hidden-accessible" name="user_id" id="user_id" data-minimum-results-for-search="1" data-select2-id="user_id" tabindex="-1" aria-hidden="true">
+                                        <option value="">Select User</option>
+                                                                                                                             <option value="3050" selected="" data-select2-id="4">Aaron Tirona (aaron.tirona@viasat.com)</option>
+                                                                            </select><span class="select2 select2-container select2-container--bootstrap4" dir="ltr" data-select2-id="3"><span class="selection"><span class="select2-selection select2-selection--single" role="combobox" aria-haspopup="true" aria-expanded="false" tabindex="0" aria-labelledby="select2-user_id-container"><span class="select2-selection__rendered" id="select2-user_id-container" role="textbox" aria-readonly="true" title="Aaron Tirona (aaron.tirona@viasat.com)">Aaron Tirona (aaron.tirona@viasat.com)</span><span class="select2-selection__arrow" role="presentation"><b role="presentation"></b></span></span></span><span class="dropdown-wrapper" aria-hidden="true"></span></span>
+                            </div>
+                                                <div class="col-md-4 mb-3">
+                            <label class="form-label required">Return Location</label>
+                            <select class="form-select form-select-sm select2 select2-hidden-accessible" name="return_location_id" id="return_location_id" data-minimum-results-for-search="1" data-select2-id="return_location_id" tabindex="-1" aria-hidden="true">
+                                <!-- <option value="">Please select a location</option> -->
+                                                                         <option value="2" data-select2-id="6">test add, test add1, test add</option>
+                                
+                            </select><span class="select2 select2-container select2-container--bootstrap4" dir="ltr" data-select2-id="5"><span class="selection"><span class="select2-selection select2-selection--single" role="combobox" aria-haspopup="true" aria-expanded="false" tabindex="0" aria-labelledby="select2-return_location_id-container"><span class="select2-selection__rendered" id="select2-return_location_id-container" role="textbox" aria-readonly="true" title="test add, test add1, test add">test add, test add1, test add</span><span class="select2-selection__arrow" role="presentation"><b role="presentation"></b></span></span></span><span class="dropdown-wrapper" aria-hidden="true"></span></span>
+                            <small class="form-hint"><span class="text-danger">Note: </span> Return Location for Repaired Equipment. Missing Location? <a id="returnLocationData" data-href="https://myconnect-dev.ekinops.com/rma/addreturnlocation?returnTo=factoryInsertAdd" style="cursor:pointer;color: #3b6e8f !important;">Click here.</a>
+                                <a class="popup-window-link" id="returnLocationDataOri" data-bs-toggle="tooltip" data-oncloseaction="reload" data-bs-placement="bottom" data-popupsection="addReturnLocation" data-popupsize="lg" data-popupvalignmiddle="false" data-backdrop="static" data-showprogressmessage="true" href="https://myconnect-dev.ekinops.com/rma/addreturnlocation?returnTo=factoryInsertAdd" style="display:none;" data-bs-original-title="Add Return Address">Click here.</a></small>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="form-fieldset">
+                    <legend>Product</legend>
+                    <div class="row">
+                        <div class="col-md-4 mb-3 serialNumberProducts" style="position: relative;">
+                            <label class="form-label required">Serial Number: S/N</label>
+                            <input type="text" name="serial_number" id="serial_number" value="" class="form-control form-control-sm max-chars-note" maxlength="18" autocomplete="off">
+                            <input type="hidden" name="show_alert" id="show_alert" value="1">
+                        
+                        <span class="bootstrap-maxlength form-label-success text-danger" style="display: block; position: absolute; white-space: nowrap; z-index: 1099;">You have 18 characters left</span></div>
+                         <div class="col-md-3 mb-3">
+                            <label class="form-label required">RMA type</label>
+                            <select class="form-select form-select-sm select2 select2-hidden-accessible" name="rma_type" id="rma_type" data-minimum-results-for-search="-1" data-select2-id="rma_type" tabindex="-1" aria-hidden="true">
+                                <!-- <option value="">Select</option> -->
+                                                                    <option value="173" data-select2-id="8">Repair</option>
+                                                                    <option value="174">Refurbishment</option>
+                                                                    <option value="175">Commercial Return</option>
+                                                                    <option value="176">Others</option>
+                                                                    <option value="178">Dead on Arrival (DoA)</option>
+                                                            </select><span class="select2 select2-container select2-container--bootstrap4" dir="ltr" data-select2-id="7"><span class="selection"><span class="select2-selection select2-selection--single" role="combobox" aria-haspopup="true" aria-expanded="false" tabindex="0" aria-labelledby="select2-rma_type-container"><span class="select2-selection__rendered" id="select2-rma_type-container" role="textbox" aria-readonly="true" title="Repair">Repair</span><span class="select2-selection__arrow" role="presentation"><b role="presentation"></b></span></span></span><span class="dropdown-wrapper" aria-hidden="true"></span></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label required">Product Code</label>
+                            <input type="text" name="product_code" id="product_code" class="form-control form-control-sm" value="" autocomplete="off">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label required">Product Name</label>
+                            <input type="text" name="product_name" id="product_name" class="form-control form-control-sm" value="" readonly="" autocomplete="off">
+                            <input type="hidden" name="product_id" id="product_id" value="">
+                        </div>
+                        
+                    </div>
+                </fieldset>
+
+                <fieldset class="form-fieldset">
+                    <legend>RMA</legend>
+                    <div class="row">
+                        
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <label class="form-label">Comments (Kindly describe the fault or issue with the device in as much detail as possible.)</label>
+                                <textarea name="repair_note" class="form-control form-control-sm" rows="4" autocomplete="off"></textarea>
+                            </div>
+                            <small class="form-hint"><span class="text-danger">Note:</span> Please inform the Repair as much as possible on the fault encountered.</small>
+                        </div>
+                    </div>
+                    <div class="row">
+                       <div class="mb-3 ps-2 pe-2 mt-1 text-danger">
+                            <input type="checkbox" name="send_email_to_customer" value="1" checked="">
+                            <b>Send E-Mail To Customer</b>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="text-center mt-2">
+                <button type="submit" name="submitForm" id="submitBtnFactory" class="btn-submit btn-sm btn btn-process btn-process-default">Submit<i class="mdi mdi-spin mdi-loading"></i></button>
+                <a href="https://myconnect-dev.ekinops.com/rma/list" class="btn btn-gray btn-sm m-1">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                </div>
+                    </div>
+                    <footer class="mt-1">
+	<div class="col-md-3 logo">
+		<a href="https://www.ekinops.com/" target="_blank"><img src="https://myconnect-dev.ekinops.com/images/Ekinops_white.png" alt="MyConnect"></a>
+	</div>
+	<div class="col-md-9 footer-content">
+		<div class="row text-center align-items-center ">
+			<div class="col-md-12 mt-3 mt-lg-0">
+				<div class="navbar-expand-md">
+				<ul class="nav nav-footer justify-content-center">
+					<li class="nav-item">
+						<a class="nav-link" href="https://www.ekinops.com/" rel="noopener" target="_blank">© 2026 Ekinops</a>
+                    </li>
+					<li class="nav-item">
+													<a class="nav-link" href="https://ekipedia.ekinops.com/display/myc/MYC+R+4.0" rel="noopener" target="_blank">MyConnect v4.0</a>
+						                    </li>
+											
+						<li class="nav-item">
+							<a class="nav-link" href="https://myconnect-dev.ekinops.com/core/reportbug" rel="noopener" target="_blank" title="Click here to report any bugs">Report A Bug</a>
+						</li>
+											<li class="nav-item">
+							<a class="nav-link" href="https://www.ekinops.com/company/about-ekinops/contacts" rel="noopener" target="_blank">Contact Us</a>
+						</li>
+				</ul>
+			</div>
+			</div>
+		</div>
+	</div>
+</footer>
+        
+        <!-- Footer Layout -->
+    
+
+<!-- Module Footer Files -->
+
+    
+
+</body></html>

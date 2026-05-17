@@ -1,7 +1,7 @@
 # MyConnect RMA — Playwright Automation Suite
 
 > **Framework:** Playwright Test (JavaScript) · **Style:** TDD (`describe` / `test`)
-> **Target:** https://myconnect-dev.ekinops.com
+> **Target Environments:** dev, acc, qa, staging (configured via .env)
 > **Valid S/N:** S0283505
 
 ---
@@ -13,6 +13,8 @@ Automation Framework 2/
 ├── playwright.config.js         # Global config, projects, timeouts
 ├── package.json
 ├── .env.example                 # Environment variables template
+├── .agents/                     # Antigravity Rules and Workflows
+├── graphify-out/                # Knowledge Graph Output (HTML, JSON, Report)
 ├── config/
 │   ├── global-setup.js          # Pre-test environment validation
 │   ├── global-teardown.js       # Post-test cleanup
@@ -42,12 +44,10 @@ Automation Framework 2/
 │       └── SummaryReporter.js   # Custom test run summary reporter
 ├── tests/
 │   └── rma/
-│       ├── auth.spec.js         # Authentication (9 tests)
-│       ├── rbac.spec.js         # Role-based access control (14 tests)
-│       ├── dashboard.spec.js    # Dashboard KPI bubbles (10 tests)
-│       ├── submit-rma.spec.js   # Submit RMA + Factory Receive (21 tests)
-│       ├── view-rma.spec.js     # View RMA + Factory Insert (16 tests)
-│       └── workflow.spec.js     # Workflow + Status Colours (14 tests)
+│       ├── access/              # Role-based access & authentication (auth, rbac)
+│       ├── functional/          # Core workflows (Submit, View, Dashboard, Factory, etc)
+│       ├── regression/          # Bug regression test suites
+│       └── security/            # API & Authorization security suites
 ├── docker/
 │   └── Dockerfile
 ├── docker-compose.yml
@@ -129,24 +129,27 @@ npm run allure:open            # Open Allure report
 
 ---
 
-## Test Coverage (93 Tests)
+## Test Coverage Domains
 
-| Spec File          | Suite                    | Tests |
-|--------------------|--------------------------|-------|
-| auth.spec.js       | Authentication           | 9     |
-| rbac.spec.js       | RBAC — All Roles         | 14    |
-| dashboard.spec.js  | Dashboard KPIs           | 10    |
-| submit-rma.spec.js | Submit RMA Form          | 11    |
-| submit-rma.spec.js | Factory Receive          | 10    |
-| view-rma.spec.js   | View RMA List            | 10    |
-| view-rma.spec.js   | Factory Insert           | 6     |
-| workflow.spec.js   | Workflow Transitions     | 5     |
-| workflow.spec.js   | Status Badge Colours     | 8     |
-| **Total**          |                          | **93**|
+The automation suite is organized into key testing domains:
+
+| Domain | Description |
+|---|---|
+| **Access Control** | Verifies authentication flows, multi-role RBAC matrices, and session stability. |
+| **Functional** | End-to-end scenarios covering Dashboard KPIs, View/Submit RMA, and Factory modules. |
+| **Regression** | Dedicated bug verification tests to prevent previously resolved issues from recurring. |
+| **Security** | API boundary validation and authorization assertion tests. |
 
 ---
 
 ## Framework Architecture
+
+### Agentic Tooling (Graphify)
+
+This repository includes a [Graphify](https://github.com/safishamsi/graphify) integration to assist LLM agents (Antigravity/Claude/Gemini) in codebase navigation.
+- **Rules & Workflows**: Located in `.agents/`
+- **Output**: The extracted knowledge graph, HTML visualizer, and audit report are located in `graphify-out/`
+- **Usage**: Run `/graphify .` in your AI coding assistant to rebuild the graph after major refactoring.
 
 ### Key Design Patterns
 

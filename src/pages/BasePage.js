@@ -26,7 +26,7 @@ class BasePage {
    * @returns {Promise<void>}
    */
   async navigate(path = '/') {
-    await this.page.goto(path, { waitUntil: 'domcontentloaded' });
+    await this.page.goto(path, { waitUntil: 'commit' });
   }
 
   /**

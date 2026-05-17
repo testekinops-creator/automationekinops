@@ -1,0 +1,302 @@
+<!DOCTYPE html><html lang="en"><head>
+        <meta name="description" content="MyConnect - The Ekinops customer portal is excited to welcome you aboard! This portal is designed to ensure you have the best user experience and customer support possible when working with Ekinops solutions.">
+        <title>Ekinops MyConnect - RMA Dashboard</title>
+        <noscript><meta http-equiv="refresh" content="0;url=https://myconnect-dev.ekinops.com/nojs"></noscript>
+        <!-- Header -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="csrf-token" content="R41Q1LXfn8S57tYnakiLF8jfDycZF82bsNuTRtV8">
+<!-- Header Files -->
+    <link href="https://myconnect-dev.ekinops.com/images/favicon.ico" rel="shortcut icon" type="image/x-icon">
+    <link href="https://use.typekit.net/wrg1aas.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://myconnect-dev.ekinops.com/css/app.css?id=400301aa5c3041be9710">
+    <link href="https://myconnect-dev.ekinops.com/css/layout.css?id=a0cecd21b1e1cc89d443" media="screen" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cookieconsent2/3.1.0/cookieconsent.min.css">
+        <link rel="stylesheet" href="https://myconnect-dev.ekinops.com/modules/core/css/core.css?id=a7d70d542cf942213337">
+
+<!-- Module Header Files -->
+        
+    
+    </head>
+    <body class="rma"><div role="dialog" aria-live="polite" aria-label="cookieconsent" aria-describedby="cookieconsent:desc" class="cc-window cc-banner cc-type-info cc-theme-block cc-bottom cc-color-override-319664718 cc-invisible" style="display: none;"><!--googleoff: all--><span id="cookieconsent:desc" class="cc-message">This website uses cookies to ensure you get the best experience on our website. Read more about  <a aria-label="learn more about cookies" role="button" tabindex="0" class="cc-link" href="https://www.ekinops.com/privacy-policy" rel="noopener noreferrer nofollow" target="_blank">Ekinops Privacy and Data Protection</a></span><div class="cc-compliance"><a aria-label="dismiss cookie message" role="button" tabindex="0" class="cc-btn cc-dismiss">Allow Cookies</a></div><!--googleon: all--></div>
+                                <div class="alert alert-danger mb-0 p-1 user-alart-bar" style="display:none" id="serverAvailabilityAlertRibbon" role="alert"> </div>
+
+                        <header class="navigation navbar-expand" style="margin-bottom:1px">
+    <div class="container-fluid-bs4 ">
+        <div class="header-content">
+            <div class="navbar-leftcontainer ms-2">
+                                <a class="navbar-brand text-black" href="https://www.ekinops.com" target="_blank"><img src="https://myconnect-dev.ekinops.com/images/ekinopslogo.png" alt="MyConnect"></a>
+                            </div>
+            <div class="navbar-rightcontainer d-none d-md-block">
+                            <div class="d-flex flex-row-reverse">
+                    <div>
+                        <ul class="navbar-nav">
+                            <li class="nav-item dropdown" id="notification-wrapper">
+                                <a class="nav-link dropdown-toggle nav-link badge-counter-warpper notification-counter" data-bs-toggle="dropdown" href="#">
+                                    <i class="mdi mdi-bell mdi-14px" aria-hidden="true"></i>&nbsp;
+                                    <span class="badge text-bg-danger badge-counter">0</span>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end keep-open">
+                                    <div id="notification-container"></div>
+                                </div>
+                            </li>
+                            <li class="nav-item dropdown">
+                             <a href="https://myconnect-dev.ekinops.com/documentcentre" class="dropdown-item"><i class="mdi mdi-help-circle mdi-14px" aria-hidden="true"></i>Help</a>
+                                
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a href="https://www.ekinops.com/company/about-ekinops/contacts" class="dropdown-item" rel="noopener" target="_blank"><i class="mdi mdi-account-wrench mdi-14px" aria-hidden="true"></i>Support</a>
+                                
+                            </li>
+
+                            <li class="nav-item dropdown">
+                                <form method="POST" id="logoutForm" action="https://myconnect-dev.ekinops.com/logout">
+                                    <input type="hidden" name="_token" value="R41Q1LXfn8S57tYnakiLF8jfDycZF82bsNuTRtV8" autocomplete="off">                                    <a class="dropdown-item" href="#" onclick="event.preventDefault();
+                                                        $('#logoutForm').submit();">
+                                    <i class="mdi mdi-logout mdi-14px" aria-hidden="true"></i>
+                                    Logout
+                                    </a>
+                                </form>
+                            </li>
+                            <li class="nav-item dropdown me-3">
+                                <a class="nav-link profile-link" href="https://myconnect-dev.ekinops.com/user/profile/view/administrator.test@rma.com">
+                                    <span class="avatar avatar-sm" style="background-image: url(https://myconnect-dev.ekinops.com/images/userAvatar.png"></span>
+                                 Admin 
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                        </div>
+            <button class="d-block d-md-none" type="button" id="navbar-toggler"></button>
+        </div>
+    </div>
+</header>
+                        <header class="navigation navbar-expand">
+    <div class="container-fluid-bs4 ">
+        <div class="header-content">
+                                 <div class="navbar-leftcontainer ms-3">
+                 <a style="margin-top:0.8rem" href="https://myconnect-dev.ekinops.com" target="_self"><i class="mdi mdi-home mdi-24px" aria-hidden="true"></i></a>
+                                <div>
+                                <ul class="navbar-nav "><li class="nav-item "><a href="https://ekinops-cloud.my.salesforce.com/" data-bs-toggle="" name="salesforceInternal" id="salesforceInternal" class="nav-link   " target="_blank">Salesforce</a></li><li class="nav-item "><a href="https://extranet.ekinops.com/core/login/sso" data-bs-toggle="" name="extranetRma" id="extranetRma" class="nav-link   " target="_blank">Extranet (RMA/TAC)</a></li><li class="nav-item dropdown"><a href="#" data-bs-toggle="dropdown" name="rma" id="rma" class="nav-link dropdown-toggle  active" target="_self">RMA (Access Product)</a><ul class="dropdown-menu"><li class=""><a href="https://myconnect-dev.ekinops.com/rma/dashboard/" name="rmaDashboard" id="rmaDashboard" class="dropdown-item   " title="RMA Dashboard" target="_self">RMA Dashboard</a></li><li class=""><a href="https://myconnect-dev.ekinops.com/rma/list" name="listRma" id="listRma" class="dropdown-item   " title="RMA List" target="_self">RMA List</a></li><li class=""><a href="https://myconnect-dev.ekinops.com/rma/add" name="submitRma" id="submitRma" class="dropdown-item   " title="Submit An RMA Request" target="_self">Submit An RMA Request</a></li></ul></li><li class="nav-item "><a href="https://myconnect-dev.ekinops.com/documentcentre/home" data-bs-toggle="" name="documentCentre" id="documentCentre" class="nav-link   " target="_self">Document Center</a></li></ul>
+                </div>
+            </div>
+            <div class="navbar-rightcontainer d-none d-md-block">
+                            <div class="d-flex flex-row-reverse">
+                    <!-- <div>
+
+                        <ul class="navbar-nav">
+
+                        </ul>
+                    </div> -->
+                </div>
+                        </div>
+            <button class="d-block d-md-none" type="button" id="navbar-toggler"></button>
+        </div>
+    </div>
+</header>
+                <div id="wrapper">
+                                                <!-- Sidebar -->
+<!-- Sidebar Toggle (Topbar) -->
+<button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-0 me-3  float-start">
+    <i class="mdi mdi-menu"></i>
+</button>
+<ul class="navbar-nav bg-gradient-primary sidebar accordion" id="accordionSidebar"><li><a class="sidebar-brand d-flex align-items-center justify-content-left" href="#">
+                        <div class="sidebar-brand-icon rotate-n-15 ms-1">
+                            <i class="mdi mdi-file-replace-outline"></i>
+                        </div>
+                        <div class="sidebar-brand-text mx-1">RMA</div>
+                        </a>
+                    <hr class="sidebar-divider my-0"></li><li class="nav-item active">
+                            <a class="nav-link " title="RMA Dashboard" target="_self" href="https://myconnect-dev.ekinops.com/rma/dashboard/">
+                                <i class="mdi mdi-view-dashboard"></i>
+                                <span>Dashboard</span></a>
+                                
+                        </li><li class="nav-item ">
+                            <a class="nav-link " title="RMA List" target="_self" href="https://myconnect-dev.ekinops.com/rma/list">
+                                <i class="mdi mdi-format-list-bulleted"></i>
+                                <span>RMA List</span></a>
+                                
+                        </li><li class="nav-item ">
+                            <a class="nav-link " title="Submit RMA" target="_self" href="https://myconnect-dev.ekinops.com/rma/add">
+                                <i class="mdi mdi-plus-box"></i>
+                                <span>Submit RMA Request</span></a>
+                                
+                        </li><li class="nav-item ">
+                            <a class="nav-link " title="Factory Insert RMA" target="_self" href="https://myconnect-dev.ekinops.com/rma/factory/add">
+                                <i class="mdi mdi-plus-box"></i>
+                                <span>Factory Insert RMA</span></a>
+                                
+                        </li><li class="nav-item ">
+                            <a class="nav-link " title="Factory Insert RMA" target="_self" href="https://myconnect-dev.ekinops.com/rma/factory/receive/">
+                                <i class="mdi mdi-plus-box"></i>
+                                <span>Factory Receive RMA</span></a>
+                                
+                        </li><li class="nav-item ">
+                            <a class="nav-link " title="Manage Return Address" target="_self" href="https://myconnect-dev.ekinops.com/rma/manageaddr/">
+                                <i class="mdi mdi-plus-box"></i>
+                                <span>Manage Address</span></a>
+                                
+                        </li><hr class="sidebar-divider d-none d-md-block">
+                <!-- Sidebar Toggler (Sidebar) -->
+                <div class="toggle-sidebar-button d-md-block d-none">
+                    <button class="border-0" id="sidebarToggle"></button>
+                </div>
+        </ul>
+                                <!-- Content Wrapper -->
+                <div id="content-wrapper">
+                    <div id="content">
+                                            <div class="container-fluid">
+                                                                            <div class="row">
+                                <div class="col-xl-10">
+    <div class="page-header d-print-none">
+        <img alt="RMA Requests" src="https://myconnect-dev.ekinops.com/modules/rma/images/rma-dashboard.png" class="page-image">
+        <h2 class="page-title">RMA Requests</h2>
+        <span class="page-description">RMA Dashboard</span>
+                <div class="clearfix"></div>
+    </div>
+</div>
+                                                            </div>
+                                                        <div class="card panel mt-1">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-xl-12">
+                    <div class="row home-dashboard">
+                        <div class="col-md-12">
+                            <div class="border-bottom dashboard-description text-center pb-3 mb-4">
+                                The RMA Dashboard provides a comprehensive overview of all RMA requests, enabling real-time tracking of RMA status across various stages and supporting efficient monitoring and follow-up.
+                            </div>
+                        </div>
+                                                    <div class="col-md-4 bubble-box mb-2">
+                                                                    <form method="post" action="https://myconnect-dev.ekinops.com/rma/list" name="rmaDashboard">
+                                        <input type="hidden" name="_token" value="R41Q1LXfn8S57tYnakiLF8jfDycZF82bsNuTRtV8" autocomplete="off">                                        <a href="#" class="dashboard-bubble-link">
+                                            <div class="card">
+                                                <div class="card-body p-2">
+                                                    <h5 class="bubble-title">RMA Repair In Progress </h5>
+                                                                                                        <div class="float-start me-2 mb-2 dashboard-bubble bubble-blue">11</div>
+                                                    <p class="card-text">RMA requests where the device has been received and is currently undergoing repair activities but has not yet been completed.</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                        <input type="hidden" name="dashboardIds" value="50,46,41,37,22,19,18,17,16,5,4">
+                                        <input type="hidden" name="dashboardLabel" value="RMA Repair In Progress ">
+                                        <input type="hidden" name="searchAction" value="SEARCH">
+                                        <input type="hidden" name="paginationHash" value=""> <!-- should be empty always -->
+                                    </form>
+                                                            </div>
+                                                    <div class="col-md-4 bubble-box mb-2">
+                                                                    <form method="post" action="https://myconnect-dev.ekinops.com/rma/list" name="rmaDashboard">
+                                        <input type="hidden" name="_token" value="R41Q1LXfn8S57tYnakiLF8jfDycZF82bsNuTRtV8" autocomplete="off">                                        <a href="#" class="dashboard-bubble-link">
+                                            <div class="card">
+                                                <div class="card-body p-2">
+                                                    <h5 class="bubble-title">RMA - Pending Accept</h5>
+                                                                                                        <div class="float-start me-2 mb-2 dashboard-bubble bubble-blue">9</div>
+                                                    <p class="card-text">RMA requests that have been submitted but are still awaiting review and approval by the service or support team.</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                        <input type="hidden" name="dashboardIds" value="53,49,45,40,24,15,3,2,1">
+                                        <input type="hidden" name="dashboardLabel" value="RMA - Pending Accept">
+                                        <input type="hidden" name="searchAction" value="SEARCH">
+                                        <input type="hidden" name="paginationHash" value=""> <!-- should be empty always -->
+                                    </form>
+                                                            </div>
+                                                    <div class="col-md-4 bubble-box mb-2">
+                                                                    <div class="card">
+                                        <div class="card-body p-2">
+                                            <h5 class="bubble-title">RMA - In Progress More Than 30 Days</h5>
+                                                                                        <div class="float-start me-2 mb-2 dashboard-bubble bubble-grey">0</div>
+                                            <p class="card-text">RMA requests where the device has been received or is on hold and has remained in progress for over 30 days without completion, requiring attention or follow-up.</p>
+                                        </div>
+                                    </div>
+                                                            </div>
+                                                    <div class="col-md-4 bubble-box mb-2">
+                                                                    <div class="card">
+                                        <div class="card-body p-2">
+                                            <h5 class="bubble-title">RMA - Accepted &amp; Not Received</h5>
+                                                                                        <div class="float-start me-2 mb-2 dashboard-bubble bubble-grey">0</div>
+                                            <p class="card-text">RMA requests that have been approved, but the device has not been received at the service facility even after 30 days.</p>
+                                        </div>
+                                    </div>
+                                                            </div>
+                                                    <div class="col-md-4 bubble-box mb-2">
+                                                                    <form method="post" action="https://myconnect-dev.ekinops.com/rma/list" name="rmaDashboard">
+                                        <input type="hidden" name="_token" value="R41Q1LXfn8S57tYnakiLF8jfDycZF82bsNuTRtV8" autocomplete="off">                                        <a href="#" class="dashboard-bubble-link">
+                                            <div class="card">
+                                                <div class="card-body p-2">
+                                                    <h5 class="bubble-title">Open RMA - Submitted More Than 3 Times</h5>
+                                                                                                        <div class="float-start me-2 mb-2 dashboard-bubble bubble-red">5</div>
+                                                    <p class="card-text">This is the RMA requests where the same customer or device has had an RMA request in the past more than three times.</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                        <input type="hidden" name="dashboardIds" value="53,50,45,16,15">
+                                        <input type="hidden" name="dashboardLabel" value="Open RMA - Submitted More Than 3 Times">
+                                        <input type="hidden" name="searchAction" value="SEARCH">
+                                        <input type="hidden" name="paginationHash" value=""> <!-- should be empty always -->
+                                    </form>
+                                                            </div>
+                                                    <div class="col-md-4 bubble-box mb-2">
+                                                                    <form method="post" action="https://myconnect-dev.ekinops.com/rma/list" name="rmaDashboard">
+                                        <input type="hidden" name="_token" value="R41Q1LXfn8S57tYnakiLF8jfDycZF82bsNuTRtV8" autocomplete="off">                                        <a href="#" class="dashboard-bubble-link">
+                                            <div class="card">
+                                                <div class="card-body p-2">
+                                                    <h5 class="bubble-title">RMA - Repaired But Not Closed</h5>
+                                                                                                        <div class="float-start me-2 mb-2 dashboard-bubble bubble-blue">9</div>
+                                                    <p class="card-text">RMA requests where the repair or resolution has been completed, but the case has not yet been formally closed in the system.</p>
+                                                </div>
+                                            </div>
+                                        </a>
+                                        <input type="hidden" name="dashboardIds" value="52,48,44,39,35,25,20,14,10">
+                                        <input type="hidden" name="dashboardLabel" value="RMA - Repaired But Not Closed">
+                                        <input type="hidden" name="searchAction" value="SEARCH">
+                                        <input type="hidden" name="paginationHash" value=""> <!-- should be empty always -->
+                                    </form>
+                                                            </div>
+                                            </div>
+                </div>
+            </div>
+        </div>
+    </div>
+                        </div>
+                    </div>
+                </div>
+                    </div>
+                    <footer class="mt-1">
+	<div class="col-md-3 logo">
+		<a href="https://www.ekinops.com/" target="_blank"><img src="https://myconnect-dev.ekinops.com/images/Ekinops_white.png" alt="MyConnect"></a>
+	</div>
+	<div class="col-md-9 footer-content">
+		<div class="row text-center align-items-center ">
+			<div class="col-md-12 mt-3 mt-lg-0">
+				<div class="navbar-expand-md">
+				<ul class="nav nav-footer justify-content-center">
+					<li class="nav-item">
+						<a class="nav-link" href="https://www.ekinops.com/" rel="noopener" target="_blank">© 2026 Ekinops</a>
+                    </li>
+					<li class="nav-item">
+													<a class="nav-link" href="https://ekipedia.ekinops.com/display/myc/MYC+R+4.0" rel="noopener" target="_blank">MyConnect v4.0</a>
+						                    </li>
+											
+						<li class="nav-item">
+							<a class="nav-link" href="https://myconnect-dev.ekinops.com/core/reportbug" rel="noopener" target="_blank" title="Click here to report any bugs">Report A Bug</a>
+						</li>
+											<li class="nav-item">
+							<a class="nav-link" href="https://www.ekinops.com/company/about-ekinops/contacts" rel="noopener" target="_blank">Contact Us</a>
+						</li>
+				</ul>
+			</div>
+			</div>
+		</div>
+	</div>
+</footer>
+        
+        <!-- Footer Layout -->
+    
+
+<!-- Module Footer Files -->
+
+    
+
+</body></html>

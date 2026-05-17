@@ -40,3 +40,4 @@ npm-debug.log*
 tmp/
 temp/
 requirements_extracted.txt
+graphify-out/ 

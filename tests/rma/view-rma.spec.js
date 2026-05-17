@@ -7,7 +7,7 @@ const { test, expect } = require('@playwright/test');
 const { loginAs } = require('../../src/helpers/rmaAuthHelper');
 const { ViewRMAPage } = require('../../src/pages/rma/ViewRMAPage');
 const { FactoryInsertPage } = require('../../src/pages/rma/FactoryInsertPage');
-const { USERS, ROUTES } = require('../../src/helpers/Constants');
+const { USERS, ROUTES, RMA } = require('../../src/helpers/Constants');
 
 test.describe('View RMA Requests @view', () => {
   test.beforeEach(async ({ page }) => {
@@ -126,7 +126,7 @@ test.describe('Factory Insert RMA @factory-insert', () => {
 
   test('TC-FI-003 | Note for Repair is optional in Factory Insert', async ({ page }) => {
     const fiPage = new FactoryInsertPage(page);
-    await fiPage.fillSerial('S0283505');
+    await fiPage.fillSerial(RMA.validSerial);
     await page.waitForTimeout(1000);
     const rmaType = fiPage.rmaTypeDropdown;
     if (await rmaType.isVisible()) { await rmaType.selectOption({ index: 1 }); }
@@ -136,7 +136,7 @@ test.describe('Factory Insert RMA @factory-insert', () => {
 
   test('TC-FI-004 | Cancel button discards form', async ({ page }) => {
     const fiPage = new FactoryInsertPage(page);
-    await fiPage.fillSerial('S0283505');
+    await fiPage.fillSerial(RMA.validSerial);
     await fiPage.clickCancel();
     await expect(page).not.toHaveURL(/\/factory-insert$/);
   });

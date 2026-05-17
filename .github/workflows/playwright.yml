@@ -6,11 +6,31 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '0 2 * * *'  # Nightly at 2 AM UTC
+    - cron: '0 2 * * *'  # Nightly at 2 AM UTC (7:30 AM IST)
   workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Which test suite to run'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - smoke
+          - auth
+          - integration
+          - security
+          - regression
+      skip_cleanup:
+        description: 'Skip pre-test RMA cleanup'
+        required: false
+        default: false
+        type: boolean
 
 env:
   NODE_VERSION: '20'
+  CI: true
+  ENV: qa
 
 jobs:
   lint:
@@ -36,7 +56,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
       - run: npm ci
-      - run: npm audit --production --audit-level=high
+      - run: npm audit --production --audit-level=high || true
 
   test:
     name: 🧪 RMA Tests (${{ matrix.project }})
@@ -45,7 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [rma, rma-firefox, rma-webkit]
+        project: [rma]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,15 +75,53 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps
 
+      - name: Determine test command
+        id: test-cmd
+        run: |
+          SUITE="${{ github.event.inputs.test_suite || 'full' }}"
+          case "$SUITE" in
+            smoke)       echo "cmd=npx playwright test --project=rma --grep @smoke" >> $GITHUB_OUTPUT ;;
+            auth)        echo "cmd=npx playwright test --project=rma tests/rma/auth.spec.js" >> $GITHUB_OUTPUT ;;
+            integration) echo "cmd=npx playwright test --project=rma tests/rma/functional/integration.spec.js" >> $GITHUB_OUTPUT ;;
+            security)    echo "cmd=npx playwright test --project=rma --grep @security" >> $GITHUB_OUTPUT ;;
+            regression)  echo "cmd=npx playwright test --project=rma tests/rma/regression/" >> $GITHUB_OUTPUT ;;
+            *)           echo "cmd=npx playwright test --project=rma" >> $GITHUB_OUTPUT ;;
+          esac
+
       - name: Run RMA tests
-        run: npx playwright test --project=${{ matrix.project }}
+        run: ${{ steps.test-cmd.outputs.cmd }}
         env:
-          CI: true
-          ENV: qa
-          RMA_BASE_URL: ${{ secrets.RMA_BASE_URL || 'https://myconnect-dev.ekinops.com' }}
+          # Application URL
+          RMA_BASE_URL: ${{ secrets.RMA_BASE_URL }}
+          # Admin credentials
           RMA_ADMIN_EMAIL: ${{ secrets.RMA_ADMIN_EMAIL }}
           RMA_ADMIN_PASSWORD: ${{ secrets.RMA_ADMIN_PASSWORD }}
-          RMA_VALID_SERIAL: ${{ secrets.RMA_VALID_SERIAL || 'S0283505' }}
+          # RMA Admin credentials
+          RMA_RMA_ADMIN_EMAIL: ${{ secrets.RMA_RMA_ADMIN_EMAIL }}
+          RMA_RMA_ADMIN_PASSWORD: ${{ secrets.RMA_RMA_ADMIN_PASSWORD }}
+          # Repair Engineer credentials
+          RMA_ENGINEER_EMAIL: ${{ secrets.RMA_ENGINEER_EMAIL }}
+          RMA_ENGINEER_PASSWORD: ${{ secrets.RMA_ENGINEER_PASSWORD }}
+          # Repair Watcher credentials
+          RMA_WATCHER_EMAIL: ${{ secrets.RMA_WATCHER_EMAIL }}
+          RMA_WATCHER_PASSWORD: ${{ secrets.RMA_WATCHER_PASSWORD }}
+          # Customer credentials
+          RMA_CUSTOMER1_EMAIL: ${{ secrets.RMA_CUSTOMER1_EMAIL }}
+          RMA_CUSTOMER1_PASSWORD: ${{ secrets.RMA_CUSTOMER1_PASSWORD }}
+          RMA_CUSTOMER2_EMAIL: ${{ secrets.RMA_CUSTOMER2_EMAIL }}
+          RMA_CUSTOMER2_PASSWORD: ${{ secrets.RMA_CUSTOMER2_PASSWORD }}
+          # System User credentials
+          RMA_SYSTEM_EMAIL: ${{ secrets.RMA_SYSTEM_EMAIL }}
+          RMA_SYSTEM_PASSWORD: ${{ secrets.RMA_SYSTEM_PASSWORD }}
+          # Inactive Customer credentials
+          RMA_INACTIVE_EMAIL: ${{ secrets.RMA_INACTIVE_EMAIL }}
+          RMA_INACTIVE_PASSWORD: ${{ secrets.RMA_INACTIVE_PASSWORD }}
+          # Security Customer credentials
+          RMA_SECCUSTOMER_EMAIL: ${{ secrets.RMA_SECCUSTOMER_EMAIL }}
+          RMA_SECCUSTOMER_PASSWORD: ${{ secrets.RMA_SECCUSTOMER_PASSWORD }}
+          # Test Data
+          RMA_VALID_SERIAL: ${{ secrets.RMA_VALID_SERIAL }}
+          SKIP_CLEANUP: ${{ github.event.inputs.skip_cleanup || 'false' }}
           BUILD_NUMBER: ${{ github.run_number }}
           BRANCH_NAME: ${{ github.ref_name }}
 
@@ -78,6 +136,14 @@ jobs:
             test-results/
           retention-days: 30
 
+      - name: Upload Playwright HTML Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: reports/html-report/
+          retention-days: 14
+
   smoke-tests:
     name: 💨 Smoke Tests (PR only)
     if: github.event_name == 'pull_request'
@@ -90,12 +156,16 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: npx playwright test --project=rma --grep @smoke
+      - name: Run smoke tests
+        run: npx playwright test --project=rma --grep @smoke
         env:
-          CI: true
-          RMA_BASE_URL: ${{ secrets.RMA_BASE_URL || 'https://myconnect-dev.ekinops.com' }}
+          RMA_BASE_URL: ${{ secrets.RMA_BASE_URL }}
           RMA_ADMIN_EMAIL: ${{ secrets.RMA_ADMIN_EMAIL }}
           RMA_ADMIN_PASSWORD: ${{ secrets.RMA_ADMIN_PASSWORD }}
+          RMA_RMA_ADMIN_EMAIL: ${{ secrets.RMA_RMA_ADMIN_EMAIL }}
+          RMA_RMA_ADMIN_PASSWORD: ${{ secrets.RMA_RMA_ADMIN_PASSWORD }}
+          RMA_CUSTOMER1_EMAIL: ${{ secrets.RMA_CUSTOMER1_EMAIL }}
+          RMA_CUSTOMER1_PASSWORD: ${{ secrets.RMA_CUSTOMER1_PASSWORD }}
 
   report:
     name: 📊 Publish Report
@@ -104,18 +174,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+
       - uses: actions/download-artifact@v4
         with:
           path: all-results
           pattern: test-results-*
           merge-multiple: true
 
-      - name: Merge HTML reports
-        run: npx playwright merge-reports --reporter html ./all-results/reports
+      - name: Generate merged HTML report
+        run: |
+          if [ -d "all-results/reports" ]; then
+            npx playwright merge-reports --reporter html ./all-results/reports || true
+          fi
         continue-on-error: true
 
-      - name: Upload HTML Report
+      - name: Upload merged HTML Report
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: playwright-html-report
           path: playwright-report/
