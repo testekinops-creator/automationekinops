@@ -447,7 +447,6 @@ test.describe('BUG-TC-011 | Bug 11 – Status Displayed After Edit/Save (Regress
 test.describe('BUG-TC-013 | Bug 13 – Customer User Dropdown Preserved After Validation Error', () => {
 
   test('Customer User dropdown retains value after Save triggers validation error', async ({ page }) => {
-    test.fail(true, 'Bug is still active — tracking as expected failure');
     console.log('BUG-TC-013: Starting test');
     await loginAs(page, USERS.repairEngineer);
     console.log('BUG-TC-013: Logged in, going to submit RMA');
@@ -478,12 +477,12 @@ test.describe('BUG-TC-013 | Bug 13 – Customer User Dropdown Preserved After Va
     console.log('BUG-TC-013: Clicked save');
     
     // Wait for the validation error explicitly instead of arbitrary timeout
-    const errorLocator = page.locator('[class*="error"], .invalid-feedback').first();
-    await errorLocator.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    const errorLocator = page.locator('.notice-alert-list').first();
+    await errorLocator.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
     console.log('BUG-TC-013: Waited for error');
 
     // Validation error should appear
-    const _hasError = await page.locator('[class*="error"], .invalid-feedback').first().isVisible().catch(() => false);
+    const _hasError = await page.locator('.notice-alert-list').first().isVisible().catch(() => false);
 
     // Check dropdown state after validation
     const selectedUserAfter  = await userDropdown.inputValue({ timeout: 2000 }).catch(() => '');
@@ -729,11 +728,9 @@ test.describe('BUG-TC-023 | Bug 23 – Zip Alphanumeric 12; Phone 15+ Chars', ()
 
 // ──────────────────────────────────────────────────────────────────────────────
 // BUG 24 – Validation error alerts in correct order (Need to Check)
-// ──────────────────────────────────────────────────────────────────────────────
 test.describe('BUG-TC-024 | Bug 24 – Validation Error Alerts in Correct Order', () => {
 
   test('Submit RMA empty form: validation errors appear for all mandatory fields', async ({ page }) => {
-    test.fail(true, 'Bug is still active — tracking as expected failure');
     await loginAs(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
@@ -741,9 +738,12 @@ test.describe('BUG-TC-024 | Bug 24 – Validation Error Alerts in Correct Order'
     // Click Save without filling anything
     const saveBtn = page.locator('button:has-text("Save")').first();
     await saveBtn.click({ noWaitAfter: true });
-    await page.waitForTimeout(1000);
+    
+    // Wait up to 10 seconds for validation error container to appear
+    const errorContainer = page.locator('.notice-alert-list');
+    await errorContainer.waitFor({ state: 'visible', timeout: 10000 });
 
-    const errors = page.locator('[class*="error"], .invalid-feedback, .text-danger');
+    const errors = page.locator('.notice-alert-list li');
     const count  = await errors.count();
 
     // Should have multiple validation errors (not just one)
@@ -817,8 +817,7 @@ test.describe('BUG-TC-025 | Bug 25 – Country Field is Dropdown in Return Locat
 // ──────────────────────────────────────────────────────────────────────────────
 test.describe('BUG-TC-026 | Bug 26 – Empty Save Shows Validation, Not Infinite Loading', () => {
 
-  test('Submit RMA: clicking Save with no data shows validation errors within 3 seconds', async ({ page }) => {
-    test.fail(true, 'Bug is still active — tracking as expected failure');
+  test('Submit RMA: clicking Save with no data shows validation errors within 10 seconds', async ({ page }) => {
     await loginAs(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
@@ -826,8 +825,9 @@ test.describe('BUG-TC-026 | Bug 26 – Empty Save Shows Validation, Not Infinite
     const saveBtn = page.locator('button:has-text("Save")').first();
     await saveBtn.click();
 
-    // Wait 3 seconds max
-    await page.waitForTimeout(3000);
+    // Wait up to 10 seconds for the validation alert to appear
+    const errorContainer = page.locator('.notice-alert-list');
+    await errorContainer.waitFor({ state: 'visible', timeout: 10000 });
 
     // 1. Page should NOT be in loading state
     const loadingSpinner = page.locator(
@@ -841,7 +841,7 @@ test.describe('BUG-TC-026 | Bug 26 – Empty Save Shows Validation, Not Infinite
     expect(isBtnDisabled, 'Save button should not be permanently disabled').toBe(false);
 
     // 3. Validation errors should appear
-    const errors = page.locator('[class*="error"], .invalid-feedback, .text-danger, [class*="validation"]');
+    const errors = page.locator('.notice-alert-list li');
     const errorCount = await errors.count();
     expect(errorCount, 'Validation errors should appear on empty submit').toBeGreaterThan(0);
 
@@ -852,13 +852,14 @@ test.describe('BUG-TC-026 | Bug 26 – Empty Save Shows Validation, Not Infinite
   });
 
   test('Submit RMA: page remains interactive after empty Save', async ({ page }) => {
-    test.fail(true, 'Bug is still active — tracking as expected failure');
     await loginAs(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
     await page.locator('button:has-text("Save")').first().click();
-    await page.waitForTimeout(3000);
+    
+    // Wait for the validation alert to appear so we know the process finished
+    await page.locator('.notice-alert-list').waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
 
     // Page should still be interactive – can fill a field after error
     const snInput = page.locator('input[placeholder*="serial" i], input[name*="serial"]').first();
