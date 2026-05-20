@@ -41,7 +41,14 @@ const { SubmitRMAPage } = require('../../../src/pages/rma/SubmitRMAPage');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// ─── Evidence Helper ──────────────────────────────────────────────────────────
+/**
+ * Gracefully skips a test during execution if prerequisites are missing,
+ * while capturing a screenshot of the current state and attaching it to the report.
+ * This provides visual evidence for debugging why a test was skipped dynamically.
+ * 
+ * @param {import('@playwright/test').Page} page - The Playwright Page object
+ * @param {string} reason - The reason for skipping the test
+ */
 async function skipWithEvidence(page, reason) {
   try {
     const screenshot = await page.screenshot({ timeout: 2000 }).catch(() => null);
@@ -51,9 +58,16 @@ async function skipWithEvidence(page, reason) {
   } catch (e) {
     console.warn('Could not take skip evidence screenshot:', e.message);
   }
-  await skipWithEvidence(page, reason);
+  // Hard skip the test with the provided reason
+  test.skip(true, reason);
 }
 
+/**
+ * Navigates to the RMA list view and attempts to open the first RMA record.
+ * 
+ * @param {import('@playwright/test').Page} page - The Playwright Page object
+ * @returns {Promise<boolean>} True if an RMA was successfully opened, false if the list is empty
+ */
 async function openFirstRMA(page) {
   await page.goto(ROUTES.viewRma ?? '/rma/list');
   await page.waitForLoadState('networkidle');
@@ -1046,9 +1060,9 @@ test.describe('BUG-TC-027 | Bug 27 – Factory Insert Duplicate Serial Number Va
               // Capture all possible error sources
               const valError = await checkPage.locator('.alert-danger, .text-danger').first().textContent().catch(() => '');
               const toastrError = await checkPage.locator('.toast-error, .toast-message').first().textContent().catch(() => '');
-              if (valError) console.warn(`  [beforeAll] DOM validation error: ${valError.trim().substring(0, 200)}`);
-              if (toastrError) console.warn(`  [beforeAll] Toastr error: ${toastrError.trim().substring(0, 200)}`);
-              if (alertMsg) console.warn(`  [beforeAll] Alert dialog: ${alertMsg}`);
+              if (valError) {console.warn(`  [beforeAll] DOM validation error: ${valError.trim().substring(0, 200)}`);}
+              if (toastrError) {console.warn(`  [beforeAll] Toastr error: ${toastrError.trim().substring(0, 200)}`);}
+              if (alertMsg) {console.warn(`  [beforeAll] Alert dialog: ${alertMsg}`);}
               
               // Take a screenshot for debugging
               await checkPage.screenshot({ path: 'test-results/beforeAll-debug.png' }).catch(() => {});

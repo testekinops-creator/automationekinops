@@ -179,7 +179,8 @@ Pre-configured pipelines for:
 
 ## Notes
 
-- Tests use `test.skip()` gracefully when test data is unavailable
-- Selectors use multiple fallback strategies for robustness
-- `actionTimeout: 15s`, `navigationTimeout: 30s` configured for dev environment latency
-- All credentials managed via `.env` — never commit `.env` to version control
+- **Dynamic Test Skips:** Tests use `skipWithEvidence()` gracefully when required test data is unavailable in the environment. This takes a screenshot of the state just before skipping and attaches it to the Playwright report, providing visual evidence for *why* the test was skipped.
+- **Expected Failures:** Tests for known, active bugs are written but marked with `test.fail()`. This allows them to run, capture failure traces/screenshots for evidence, but report as "Expected Failures" so they do not break the overall build status.
+- **Resilience:** Selectors use multiple fallback strategies (e.g., text, IDs, roles) for robustness across deployments.
+- **Timeouts:** `actionTimeout: 15s`, `navigationTimeout: 30s` configured to handle dev environment latency gracefully.
+- **Security:** All credentials managed via `.env` — never commit `.env` to version control.
