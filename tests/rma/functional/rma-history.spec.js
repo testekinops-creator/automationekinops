@@ -21,9 +21,9 @@
  */
 
 const { test, expect } = require('@playwright/test');
-const { getStorageStatePath, loginAs } = require('../../../src/helpers/rmaAuthHelper');
+const { loginAs } = require('../../../src/helpers/rmaAuthHelper');
 const { ViewRMAPage } = require('../../../src/pages/rma/ViewRMAPage');
-const { USERS, ROUTES, RMA } = require('../../../src/helpers/Constants');
+const { USERS, ROUTES } = require('../../../src/helpers/Constants');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HIST-FUNC: FUNCTIONAL TESTS

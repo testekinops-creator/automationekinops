@@ -71,7 +71,7 @@ class FilterPanel {
       await this.page.waitForTimeout(500);
     }
     // Wait for at least one filter field to be visible
-    await expect(this.showOnlyDrop).toBeAttached({ timeout: 5000 }).catch(() => {});
+    try { await expect(this.showOnlyDrop).toBeAttached({ timeout: 5000 }); } catch { /* optional wait */ }
   }
 
   async close() {
@@ -140,7 +140,7 @@ class FilterPanel {
   }
 
   async getShowOnlyOptions() {
-    return await this.showOnlyDrop.locator('option').allTextContents();
+    return this.showOnlyDrop.locator('option').allTextContents();
   }
 
   async isFieldVisible(fieldName) {
@@ -156,12 +156,12 @@ class FilterPanel {
       'To Date'      : this.toDateInput,
     };
     const el = selectors[fieldName];
-    if (!el) return false;
-    return await el.isVisible().catch(() => false);
+    if (!el) {return false;}
+    return el.isVisible().catch(() => false);
   }
 
   async getRowCount() {
-    return await this.tableRows.count();
+    return this.tableRows.count();
   }
 
   async getAllRowTexts() {
@@ -401,10 +401,10 @@ test.describe('Serial Number Filter', () => {
     await f.fillSerial(KNOWN_SERIAL);
     await f.apply();
 
-    const count = await f.getRowCount();
+    const _count = await f.getRowCount();
     const rows = await f.getAllRowTexts();
     rows.forEach(row => {
-      if (row.trim()) expect(row).toContain(KNOWN_SERIAL);
+      if (row.trim()) {expect(row).toContain(KNOWN_SERIAL);}
     });
   });
 
@@ -418,7 +418,7 @@ test.describe('Serial Number Filter', () => {
 
     const rows = await f.getAllRowTexts();
     rows.forEach(row => {
-      if (row.trim()) expect(row).not.toContain('testtransport');
+      if (row.trim()) {expect(row).not.toContain('testtransport');}
     });
   });
 
@@ -453,7 +453,7 @@ test.describe('Status Filter (Admin Only)', () => {
       await f.selectStatus(status);
       await f.apply();
 
-      const rows = await f.getAllRowTexts();
+      const _rows = await f.getAllRowTexts();
       const count = await f.getRowCount();
 
       if (count > 0) {
@@ -746,9 +746,9 @@ test.describe('Apply / Reset / Close Buttons', () => {
     await f.apply();
 
     // Panel should close after Apply
-    const panelVisible = await f.panel.isVisible().catch(() => false);
+    const _panelVisible = await f.panel.isVisible().catch(() => false);
     // List should update
-    const bannerVisible = await f.filterBanner.isVisible().catch(() => false);
+    const _bannerVisible = await f.filterBanner.isVisible().catch(() => false);
     // Sort banner should still say RMA ID: DESC
     const sortText = await f.sortBanner.textContent().catch(() => '');
     expect(sortText).toContain('RMA ID');
@@ -769,12 +769,12 @@ test.describe('Apply / Reset / Close Buttons', () => {
     await f.reset();
 
     // Fields should be cleared
-    expect(await f.rmaIdInput.inputValue()).toBe('');
-    expect(await f.serialInput.inputValue()).toBe('');
-    expect(await f.keywordInput.inputValue()).toBe('');
+    await expect(f.rmaIdInput).toHaveValue('');
+    await expect(f.serialInput).toHaveValue('');
+    await expect(f.keywordInput).toHaveValue('');
 
     // Show Only should revert to 'Show All'
-    const showOnlyVal = await f.showOnlyDrop.inputValue();
+    const _showOnlyVal = await f.showOnlyDrop.inputValue();
     const showOnlyText = await f.showOnlyDrop.locator('option:checked').textContent();
     expect(showOnlyText?.trim()).toMatch(/Show All/i);
   });
@@ -983,7 +983,7 @@ test.describe('UI/UX – Filter Panel', () => {
 
   test('FLT-UI | No console JS errors when filter panel opens/closes', async ({ page }) => {
     const errors = [];
-    page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+    page.on('console', msg => { if (msg.type() === 'error') {errors.push(msg.text());} });
     page.on('pageerror', err => errors.push(err.message));
 
     await loginAs(page, USERS.rmaAdmin);

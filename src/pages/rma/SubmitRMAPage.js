@@ -122,8 +122,24 @@ class SubmitRMAPage extends BasePage {
       await this.emailInput.fill(email); 
     }
   }
-  async selectReturnLocation(location) { await this.returnLocationDropdown.selectOption({ label: location }); }
-  async selectRmaType(type) { await this.rmaTypeDropdown.selectOption({ label: type }); }
+  async selectReturnLocation(location) {
+    await this.returnLocationDropdown.evaluate((el, val) => {
+      const option = Array.from(el.options).find(o => o.text.includes(val) || o.value === val);
+      if (option) {
+        el.value = option.value;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }, location);
+  }
+  async selectRmaType(type) {
+    await this.rmaTypeDropdown.evaluate((el, val) => {
+      const option = Array.from(el.options).find(o => o.text.includes(val) || o.value === val);
+      if (option) {
+        el.value = option.value;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }, type);
+  }
   async fillNoteForRepair(note) { await this.noteForRepair.fill(note); }
 
   async clickSave() {
@@ -151,7 +167,7 @@ class SubmitRMAPage extends BasePage {
    * @returns {Promise<boolean>}
    */
   async isClickHereLinkVisible() {
-    return await this.clickHereLink.isVisible().catch(() => false);
+    return this.clickHereLink.isVisible().catch(() => false);
   }
 
   /**
@@ -161,7 +177,7 @@ class SubmitRMAPage extends BasePage {
    */
   async getReturnLocationOptions() {
     await this.returnLocationDropdown.waitFor({ state: 'visible', timeout: 10_000 });
-    return await this.returnLocationDropdown.locator('option').allTextContents();
+    return this.returnLocationDropdown.locator('option').allTextContents();
   }
 
   /**
@@ -169,24 +185,24 @@ class SubmitRMAPage extends BasePage {
    * @returns {Promise<boolean>}
    */
   async isNewReturnLocationModalVisible() {
-    return await this.newReturnLocationModal.isVisible().catch(() => false);
+    return this.newReturnLocationModal.isVisible().catch(() => false);
   }
 
   async fillCompleteForm({ serialNumber, customer, username, phone, email, returnLocation, rmaType, note }) {
     await this.fillSerialNumber(serialNumber);
-    if (customer) await this.selectCustomer(customer);
-    if (username) await this.selectCustomerUser(username);
-    if (phone) await this.fillPhone(phone);
-    if (email) await this.fillEmail(email);
-    if (returnLocation) await this.selectReturnLocation(returnLocation);
-    if (rmaType) await this.selectRmaType(rmaType);
-    if (note) await this.fillNoteForRepair(note);
+    if (customer) {await this.selectCustomer(customer);}
+    if (username) {await this.selectCustomerUser(username);}
+    if (phone) {await this.fillPhone(phone);}
+    if (email) {await this.fillEmail(email);}
+    if (returnLocation) {await this.selectReturnLocation(returnLocation);}
+    if (rmaType) {await this.selectRmaType(rmaType);}
+    if (note) {await this.fillNoteForRepair(note);}
   }
 
-  async getProductName() { return await this.productNameInput.inputValue(); }
-  async getProductCode() { return await this.productCodeInput.inputValue(); }
-  async hasValidationError(fieldText) { return await this.page.locator(`text=/${fieldText}/i`).isVisible(); }
-  async isOaWarningVisible() { return await this.oaWarning.isVisible(); }
+  async getProductName() { return this.productNameInput.inputValue(); }
+  async getProductCode() { return this.productCodeInput.inputValue(); }
+  async hasValidationError(fieldText) { return this.page.locator(`text=/${fieldText}/i`).isVisible(); }
+  async isOaWarningVisible() { return this.oaWarning.isVisible(); }
   async expectMandatoryNote() { await this.mandatoryNote.waitFor({ state: 'visible', timeout: 10_000 }); }
 
   /**
@@ -194,7 +210,7 @@ class SubmitRMAPage extends BasePage {
    * @returns {Promise<boolean>}
    */
   async isLoading() {
-    return await this.loadingSpinner.isVisible().catch(() => false);
+    return this.loadingSpinner.isVisible().catch(() => false);
   }
 
   /**
@@ -210,7 +226,7 @@ class SubmitRMAPage extends BasePage {
    * @returns {Promise<boolean>}
    */
   async isDuplicateSerialErrorVisible() {
-    return await this.duplicateSerialError.isVisible().catch(() => false);
+    return this.duplicateSerialError.isVisible().catch(() => false);
   }
 
   /**
@@ -218,7 +234,7 @@ class SubmitRMAPage extends BasePage {
    * @returns {Promise<string>}
    */
   async getDuplicateSerialErrorText() {
-    if (!await this.isDuplicateSerialErrorVisible()) return '';
+    if (!await this.isDuplicateSerialErrorVisible()) {return '';}
     return (await this.duplicateSerialError.textContent())?.trim() ?? '';
   }
 
@@ -242,11 +258,11 @@ class SubmitRMAPage extends BasePage {
     // Check if the modal with the iframe is visible
     const modal = this.page.locator('#addReturnLocationWindow, [id*="addReturnLocation"]').first();
     const modalVisible = await modal.isVisible().catch(() => false);
-    if (modalVisible) return true;
+    if (modalVisible) {return true;}
 
     // Fallback: check iframe directly
     const iframe = this.page.locator('iframe#iframeWindow, iframe[src*="addreturnlocation"]').first();
-    return await iframe.isVisible().catch(() => false);
+    return iframe.isVisible().catch(() => false);
   }
 
   /**
@@ -309,7 +325,7 @@ class SubmitRMAPage extends BasePage {
   async getIframeCustomerName() {
     const iframe = this.getReturnLocationIframe();
     const field = iframe.locator('input[name*="customer_name"], input[readonly]').first();
-    return await field.inputValue().catch(() => '');
+    return field.inputValue().catch(() => '');
   }
 
   /**
@@ -319,7 +335,7 @@ class SubmitRMAPage extends BasePage {
   async getIframeUserName() {
     const iframe = this.getReturnLocationIframe();
     const field = iframe.locator('input[name*="user_name"], input[readonly]').nth(1);
-    return await field.inputValue().catch(() => '');
+    return field.inputValue().catch(() => '');
   }
 
   /**

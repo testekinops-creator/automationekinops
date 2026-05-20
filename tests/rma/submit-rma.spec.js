@@ -1,3 +1,4 @@
+/* eslint-env browser */
 // @ts-check
 /**
  * tests/rma/submit-rma.spec.js

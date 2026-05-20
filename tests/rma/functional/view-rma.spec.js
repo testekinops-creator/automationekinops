@@ -1,3 +1,4 @@
+/* eslint-env browser */
 // @ts-check
 /**
  * tests/rma/view-rma.spec.js
@@ -8,9 +9,8 @@
  */
 const { test, expect } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
-const { ViewRMAPage } = require('../../../src/pages/rma/ViewRMAPage');
 const { FactoryInsertPage } = require('../../../src/pages/rma/FactoryInsertPage');
-const { USERS, ROUTES, RMA } = require('../../../src/helpers/Constants');
+const { ROUTES, RMA } = require('../../../src/helpers/Constants');
 
 test.describe('View RMA Requests @view', () => {
   test.beforeEach(async ({ page }) => {

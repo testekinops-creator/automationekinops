@@ -1,3 +1,4 @@
+/* eslint-env browser */
 // @ts-check
 /**
  * tests/rma/workflow.spec.js
@@ -5,27 +6,114 @@
  *
  * Session: Default storageState (rmaAdmin) from project config.
  *          TC-WF-003 overrides to customerOne via separate describe block.
+ *
+ * Setup: Creates an RMA with a dedicated serial so Submitted status is always present.
+ * Teardown: Cleans up (closes) the RMA to avoid cross-test contamination.
  */
 const { test, expect } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
-const { ViewRMAPage } = require('../../../src/pages/rma/ViewRMAPage');
 const { FactoryReceivePage } = require('../../../src/pages/rma/FactoryReceivePage');
-const { USERS, ROUTES, RMA } = require('../../../src/helpers/Constants');
+const { SubmitRMAPage } = require('../../../src/pages/rma/SubmitRMAPage');
+const { ViewRMAPage } = require('../../../src/pages/rma/ViewRMAPage');
+const { cleanupSerials } = require('../../../src/helpers/rmaCleanup');
+const { ROUTES, RMA } = require('../../../src/helpers/Constants');
+
+/** Dedicated serial for workflow tests — cleaned up after suite completes. */
+const WORKFLOW_SERIAL = RMA.workflowSerial;
 
 test.describe('Workflow Transitions @workflow', () => {
+  // ── Setup: Submit an RMA so "Submitted" status is guaranteed ──────────────
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(120_000);
+    const context = await browser.newContext({
+      storageState: getStorageStatePath('rmaAdmin'),
+    });
+    const page = await context.newPage();
+    try {
+      // First cleanup any stale RMA from a previous crashed run
+      await cleanupSerials([WORKFLOW_SERIAL], {
+        prefix: '[WF-Setup]',
+        includeEngineerPhase: true,
+      });
+
+      const submitPage = new SubmitRMAPage(page);
+      await submitPage.goto();
+      await submitPage.fillSerialNumber(WORKFLOW_SERIAL);
+
+      // Wait for product lookup AJAX
+      const productName = await submitPage.getProductName();
+      console.log(`  [WF-Setup] Product resolved: "${productName}"`);
+
+      // Check for duplicate serial error
+      if (await submitPage.isDuplicateSerialErrorVisible()) {
+        console.log(`  [WF-Setup] Serial ${WORKFLOW_SERIAL} already has an active RMA — skipping creation`);
+        return;
+      }
+
+      await submitPage.selectCustomer(RMA.customerName);
+      await submitPage.selectCustomerUser(RMA.customerUsername);
+
+      // Select Return Location and RMA Type (mandatory, populated via AJAX after customer selection)
+      await page.waitForTimeout(1500);
+      const selectFields = ['select[name="return_location_id"]', 'select[name="rma_type"]'];
+      for (const selector of selectFields) {
+        const selectEl = page.locator(selector).first();
+        if (await selectEl.isVisible({ timeout: 3000 }).catch(() => false)) {
+          const currentVal = await selectEl.inputValue().catch(() => '');
+          if (!currentVal || currentVal === '' || currentVal === '0') {
+            await selectEl.selectOption({ index: 1 }).catch(() => {});
+            await page.waitForTimeout(300);
+          }
+        }
+      }
+
+      await submitPage.fillNoteForRepair('Workflow test setup — auto-created RMA for status verification');
+      await submitPage.clickSave();
+
+      // Verify success (redirect away from /rma/add)
+      const url = page.url();
+      if (url.includes('/rma/add')) {
+        console.log(`  [WF-Setup] ⚠️ RMA creation may have failed — still on submit page`);
+      } else {
+        console.log(`  [WF-Setup] ✅ RMA created with S/N ${WORKFLOW_SERIAL}`);
+      }
+    } finally {
+      await page.close();
+      await context.close();
+    }
+  });
+
+  // ── Teardown: Close the RMA so the serial is available for future runs ────
+  test.afterAll(async () => {
+    // Cleanup (Reject → Close) can take 60-90s — extend the hook timeout
+    test.setTimeout(120_000);
+    await cleanupSerials([WORKFLOW_SERIAL], {
+      prefix: '[WF-Teardown]',
+      includeEngineerPhase: true,
+    });
+  });
+
   test.beforeEach(async ({ page }) => {
     await page.goto(ROUTES.viewRma);
     await page.waitForLoadState('networkidle');
   });
 
   test('TC-WF-001 | Newly submitted RMA has Submitted status @smoke', async ({ page }) => {
-    await expect(page.locator('[class*="badge"], [class*="status"], span').filter({ hasText: 'Submitted' }).first()).toBeVisible({ timeout: 10_000 });
+    const vrPage = new ViewRMAPage(page);
+    await vrPage.filterRmaList({ status: 'Submitted', keyword: WORKFLOW_SERIAL });
+
+    await expect(
+      page.locator('table tbody tr [class*="badge"], table tbody tr [class*="status"], table tbody tr span').filter({ hasText: 'Submitted' }).first()
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   test('TC-WF-002 | Accept action available for Submitted RMA', async ({ page }) => {
-    const submittedRow = page.locator('tr').filter({ hasText: 'Submitted' }).first();
+    const vrPage = new ViewRMAPage(page);
+    await vrPage.filterRmaList({ status: 'Submitted', keyword: WORKFLOW_SERIAL });
+
+    const submittedRow = page.locator('table tbody tr').filter({ hasText: 'Submitted' }).first();
     if (await submittedRow.count() > 0) {
-      const viewLink = submittedRow.locator('a[aria-label="View RMA Request"], td:last-child a').first();
+      const viewLink = submittedRow.locator('a[aria-label="View RMA Request"], td:last-child a, a:has-text("RMA-"), button:has-text("RMA-"), a, button').first();
       if (await viewLink.count() > 0) {
         await viewLink.click();
         await page.waitForLoadState('networkidle');
@@ -45,7 +133,7 @@ test.describe('Workflow Transitions @workflow', () => {
 
   test('TC-WF-005 | Received status appears after Factory Receive on Accepted RMA', async ({ page }) => {
     // Pre-condition: Check if there are any Accepted RMAs in the list first
-    const acceptedRow = page.locator('tr').filter({ hasText: 'Accepted' }).first();
+    const acceptedRow = page.locator('table tbody tr').filter({ hasText: 'Accepted' }).first();
     const hasAccepted = await acceptedRow.isVisible().catch(() => false);
     if (!hasAccepted) {
       test.info().annotations.push({ type: 'info', description: 'No Accepted RMA available for Factory Receive test' });
@@ -68,12 +156,12 @@ test.describe('Workflow Transitions @workflow', () => {
     await frPage.submitReceive();
     await page.goto(ROUTES.viewRma);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('[class*="badge"], [class*="status"], span').filter({ hasText: 'Received' }).first()).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('table tbody tr [class*="badge"], table tbody tr [class*="status"], table tbody tr span').filter({ hasText: 'Received' }).first()).toBeVisible({ timeout: 10_000 });
   });
 
   // ─── Gap 9: Repaired → Closed transition ──────────────────────────────────
   test('TC-WF-006 | Admin can close a Repaired RMA', async ({ page }) => {
-    const repairedRow = page.locator('tr').filter({ hasText: 'Repaired' }).first();
+    const repairedRow = page.locator('table tbody tr').filter({ hasText: 'Repaired' }).first();
     if (await repairedRow.count() === 0) { test.skip(true, 'No Repaired RMA available'); return; }
 
     const viewLink = repairedRow.locator('a[aria-label="View RMA Request"], td:last-child a').first();
@@ -111,35 +199,47 @@ test.describe('Workflow Transitions @workflow', () => {
 
   // ─── Gap 10: Reject flow with mandatory comment validation ────────────────
   test('TC-WF-007 | Reject action requires mandatory Comment field', async ({ page }) => {
-    const receivedRow = page.locator('tr').filter({ hasText: 'Received' }).first();
+    const receivedRow = page.locator('table tbody tr').filter({ hasText: 'Received' }).first();
     if (await receivedRow.count() === 0) { test.skip(true, 'No Received RMA for reject test'); return; }
 
     const viewLink = receivedRow.locator('a[aria-label="View RMA Request"], td:last-child a').first();
     await viewLink.click();
     await page.waitForLoadState('networkidle');
 
-    // Click Reject action
-    const rejectBtn = page.locator('button:has-text("Reject"), a:has-text("Reject")').first();
+    // Click Reject action — workflow actions are <a> tags with href
+    const rejectBtn = page.locator('a.btn:has-text("Reject"), button:has-text("Reject")').first();
     const hasReject = await rejectBtn.isVisible().catch(() => false);
     if (!hasReject) { test.skip(true, 'Reject button not visible'); return; }
 
-    await rejectBtn.click();
+    // The Reject action opens a full-page overlay dialog (not a standard role="dialog" modal).
+    // It navigates to a workflow page with form fields.
+    const href = await rejectBtn.getAttribute('href').catch(() => null);
+    if (href) {
+      await page.goto(href, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+    } else {
+      await rejectBtn.click();
+      await page.waitForLoadState('domcontentloaded');
+    }
     await page.waitForTimeout(1000);
 
-    // Modal should open
-    const modal = page.locator('[class*="modal"]:visible, [role="dialog"]:visible').first();
-    if (!await modal.isVisible()) { test.skip(true, 'Reject dialog did not appear'); return; }
+    // The Reject workflow page has: Repair Solution*, Customer Solution*,
+    // Repair Diagnostic*, Standardized Faults*, Comment, and a Reject submit button.
+    const rejectSubmit = page.locator('button:has-text("Reject"), .btn-process, button[type="submit"]').first();
+    const submitVisible = await rejectSubmit.isVisible({ timeout: 10_000 }).catch(() => false);
+    if (!submitVisible) { test.skip(true, 'Reject submit button not visible on workflow page'); return; }
 
-    // Try submitting WITHOUT comment
-    const submitBtn = modal.locator('button:has-text("Reject"), button:has-text("Submit"), button:has-text("Confirm"), button[type="submit"]').first();
-    await submitBtn.click();
-    await page.waitForTimeout(1000);
+    // Try submitting WITHOUT filling required fields
+    const urlBefore = page.url();
+    await rejectSubmit.click();
+    await page.waitForTimeout(2000);
 
-    // Dialog should remain open OR validation error should appear
-    const dialogStillOpen = await modal.isVisible().catch(() => false);
-    const validationError = modal.locator('[class*="error"], .invalid-feedback, .text-danger').first();
+    // Validation should block submission — page stays on the workflow form
+    // OR validation error messages appear for mandatory fields
+    const urlAfter = page.url();
+    const stayedOnForm = urlAfter.includes('/rma/workflow') || urlAfter === urlBefore;
+    const validationError = page.locator('.has-error, .invalid-feedback, .text-danger, .help-block').first();
     const hasError = await validationError.isVisible().catch(() => false);
-    expect(dialogStillOpen || hasError, 'Reject dialog should block submission without comment').toBe(true);
+    expect(stayedOnForm || hasError, 'Reject form should block submission without mandatory fields').toBe(true);
   });
 
   test('TC-WF-008 | On-Hold status is counted as In Progress', async ({ page }) => {
@@ -204,7 +304,7 @@ test.describe('RMA Status Badge Colours @status-colors', () => {
         let current = el;
         while (current && current !== document.body) {
           const bg = window.getComputedStyle(current).backgroundColor;
-          if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') return bg;
+          if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {return bg;}
           current = current.parentElement;
         }
         return window.getComputedStyle(el).backgroundColor;
@@ -221,7 +321,7 @@ test.describe('RMA Status Badge Colours @status-colors', () => {
     let visibleStatuses = 0;
     for (const s of statusTexts) {
       const badge = page.locator(`[class*="badge"]:has-text("${s}"), td:has-text("${s}")`).first();
-      if (await badge.isVisible().catch(() => false)) visibleStatuses++;
+      if (await badge.isVisible().catch(() => false)) {visibleStatuses++;}
     }
     expect(visibleStatuses, 'Expected at least 1 status type visible').toBeGreaterThanOrEqual(1);
   });

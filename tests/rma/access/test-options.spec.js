@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+const { test } = require('@playwright/test');
 test('Check Test_Account_Access users', async ({ page }) => {
   await page.goto('/rma/add');
   await page.waitForTimeout(2000);

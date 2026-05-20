@@ -19,14 +19,14 @@
 
 const { test, expect } = require('@playwright/test');
 const { loginAs, getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
-const { USERS, ROUTES, RMA } = require('../../../src/helpers/Constants');
+const { USERS, ROUTES } = require('../../../src/helpers/Constants');
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 async function openFirstRmaDetail(page) {
   await page.goto(ROUTES.viewRma);
   await page.waitForLoadState('networkidle');
   const row = page.locator('table tbody tr').first();
-  if (await row.count() === 0) return null;
+  if (await row.count() === 0) {return null;}
   await row.locator('a, button').last().click();
   await page.waitForLoadState('networkidle');
   return page.url();
@@ -36,7 +36,7 @@ async function openRmaByStatus(page, status) {
   await page.goto(ROUTES.viewRma);
   await page.waitForLoadState('networkidle');
   const row = page.locator('tbody tr').filter({ hasText: status }).first();
-  if (await row.count() === 0) return null;
+  if (await row.count() === 0) {return null;}
   await row.locator('a, button').last().click();
   await page.waitForLoadState('networkidle');
   return page.url();
@@ -180,7 +180,7 @@ test.describe('GAP-BUG-005b | Filter Persistence Across Pagination @gap', () => 
 
     // Re-open filter panel
     const filterBtn2 = page.locator('button:has-text("Filter"), a:has-text("Filter Data")').first();
-    if (await filterBtn2.isVisible()) await filterBtn2.click();
+    if (await filterBtn2.isVisible()) {await filterBtn2.click();}
     await page.waitForTimeout(500);
 
     // Verify filter value persists
@@ -401,7 +401,7 @@ test.describe('GAP-BUG-001 | Watcher Dashboard Count @gap', () => {
     let cardsWithCount = 0;
     for (let i = 0; i < Math.min(cardCount, 8); i++) {
       const text = await kpiCards.nth(i).textContent().catch(() => '');
-      if (/\d+/.test(text)) cardsWithCount++;
+      if (/\d+/.test(text)) {cardsWithCount++;}
     }
     expect(cardsWithCount, 'At least 1 KPI card should display a numeric count').toBeGreaterThanOrEqual(1);
     console.log(`  Watcher dashboard: ${cardsWithCount}/${cardCount} cards with counts ✓`);
@@ -467,9 +467,9 @@ test.describe('GAP-BUG-006 | New Return Location in Dropdown @gap', () => {
       const inp = inputs.nth(i);
       if (await inp.isVisible()) {
         const name = await inp.getAttribute('name') ?? '';
-        if (name.includes('phone')) await inp.fill('+3291234567');
-        else if (name.includes('zip') || name.includes('postal')) await inp.fill('9000');
-        else await inp.fill(`GapTest${i}`);
+        if (name.includes('phone')) {await inp.fill('+3291234567');}
+        else if (name.includes('zip') || name.includes('postal')) {await inp.fill('9000');}
+        else {await inp.fill(`GapTest${i}`);}
       }
     }
 

@@ -1,3 +1,4 @@
+/* eslint-env browser */
 // @ts-check
 /**
  * tests/rma/workflow.spec.js
@@ -5,7 +6,6 @@
  */
 const { test, expect } = require('@playwright/test');
 const { loginAs } = require('../../src/helpers/rmaAuthHelper');
-const { ViewRMAPage } = require('../../src/pages/rma/ViewRMAPage');
 const { FactoryReceivePage } = require('../../src/pages/rma/FactoryReceivePage');
 const { USERS, ROUTES, RMA } = require('../../src/helpers/Constants');
 
@@ -39,8 +39,8 @@ test.describe('Workflow Transitions @workflow', () => {
     if (await firstRow.count() > 0) {
       await firstRow.locator('a, button').last().click();
       await page.waitForLoadState('networkidle');
-      await expect(page.locator('button:has-text("Accept")')).not.toBeVisible();
-      await expect(page.locator('button:has-text("Reject")')).not.toBeVisible();
+      await expect(page.locator('button:has-text("Accept")')).toBeHidden();
+      await expect(page.locator('button:has-text("Reject")')).toBeHidden();
     }
   });
 
@@ -110,12 +110,12 @@ test.describe('RMA Status Badge Colours @status-colors', () => {
     for (let i = 0; i < count; i++) {
       const text = (await badges.nth(i).textContent())?.trim() ?? '';
       const bg = await badges.nth(i).evaluate((el) => window.getComputedStyle(el).backgroundColor);
-      if (text && !colors.has(text)) colors.set(text, bg);
+      if (text && !colors.has(text)) {colors.set(text, bg);}
     }
 
-    if (colors.has('Submitted') && colors.has('Closed')) expect(colors.get('Submitted')).not.toBe(colors.get('Closed'));
-    if (colors.has('Accepted') && colors.has('Repaired')) expect(colors.get('Accepted')).not.toBe(colors.get('Repaired'));
-    if (colors.has('Received') && colors.has('Accepted')) expect(colors.get('Received')).not.toBe(colors.get('Accepted'));
+    if (colors.has('Submitted') && colors.has('Closed')) {expect(colors.get('Submitted')).not.toBe(colors.get('Closed'));}
+    if (colors.has('Accepted') && colors.has('Repaired')) {expect(colors.get('Accepted')).not.toBe(colors.get('Repaired'));}
+    if (colors.has('Received') && colors.has('Accepted')) {expect(colors.get('Received')).not.toBe(colors.get('Accepted'));}
   });
 
   test('TC-SC-CONTRAST | Status badges have visible contrast', async ({ page }) => {

@@ -1,3 +1,4 @@
+/* eslint-env browser */
 const { expect } = require('@playwright/test');
 const BasePage = require('../BasePage');
 
@@ -64,12 +65,17 @@ class RMADashboardPage extends BasePage {
   async clickCard(cardName) {
     const card = this._cardRoot(cardName);
     await card.waitFor({ state: 'visible', timeout: 10_000 });
-    // Click the dashboard-bubble-link anchor which triggers the form POST
-    const link = card.locator('a.dashboard-bubble-link').first();
-    await Promise.all([
-      this.page.waitForNavigation({ waitUntil: 'networkidle', timeout: 15_000 }),
-      link.click(),
-    ]);
+    // The card's <a> wraps all content (href="#", triggers JS/form POST)
+    const link = card.locator('a').first();
+    const linkVisible = await link.isVisible({ timeout: 3000 }).catch(() => false);
+    if (linkVisible) {
+      await link.click();
+    } else {
+      // Fallback: click the card itself
+      await card.click();
+    }
+    await this.page.waitForLoadState('networkidle').catch(() => {});
+    await this.page.waitForTimeout(1000);
   }
 
   async getCardCount(cardName) {
@@ -83,7 +89,7 @@ class RMADashboardPage extends BasePage {
   async getCardBubbleColor(cardName) {
     const card = this._cardRoot(cardName);
     const bubble = card.locator('div.dashboard-bubble').first();
-    return await bubble.evaluate((el) => window.getComputedStyle(el).backgroundColor);
+    return bubble.evaluate((el) => window.getComputedStyle(el).backgroundColor);
   }
 
   async expectBubbleColor(cardName, expectedColor) {
@@ -94,7 +100,7 @@ class RMADashboardPage extends BasePage {
   }
 
   async isSidebarItemVisible(itemKey) {
-    return await this.sidebar[itemKey].isVisible();
+    return this.sidebar[itemKey].isVisible();
   }
 
   async expectPageLoaded() {

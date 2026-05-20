@@ -119,7 +119,7 @@ async function filterBySerial(page, serial) {
     }
   }
 
-  return await page.locator('table tbody tr').count();
+  return page.locator('table tbody tr').count();
 }
 
 /**
@@ -127,7 +127,7 @@ async function filterBySerial(page, serial) {
  */
 async function detectStatus(page) {
   const rows = page.locator('table tbody tr');
-  if (await rows.count() === 0) return null;
+  if (await rows.count() === 0) {return null;}
 
   const rowText = await rows.first().textContent().catch(() => '');
   const statuses = ['Submitted', 'Accepted', 'Received', 'On Hold', 'On-Hold', 'Repaired', 'Rejected'];
@@ -219,7 +219,7 @@ async function executeAction(page, actionName, commentText) {
   // ── Wait for form fields to be ready ──────────────────────────────────────
   // First check for visible form fields (rich forms with textareas, editors, etc.)
   const formField = container.locator('textarea, .note-editor, .select2-container, input[type="text"], button[type="submit"], .btn-process').first();
-  let fieldsReady = await formField.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false);
+  const fieldsReady = await formField.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false);
 
   // If no visible fields found, check for a bare form (e.g., Close action)
   // which only has hidden inputs and needs direct form submission
@@ -229,11 +229,19 @@ async function executeAction(page, actionName, commentText) {
     
     if (formExists) {
       console.log(`      [executeAction] Bare form found (hidden fields only) — submitting directly`);
-      // Submit the bare form via JavaScript
+      // Submit the bare form via JavaScript safely
       const submitted = await bareForm.evaluate(form => {
-        form.submit();
-        return true;
-      }).catch(() => false);
+        try {
+          HTMLFormElement.prototype.submit.call(form);
+          return true;
+        } catch (err) {
+          console.error("Form submit error:", err);
+          return false;
+        }
+      }).catch(err => {
+        console.log(`      [executeAction] Evaluate error: ${err.message}`);
+        return false;
+      });
       
       if (submitted) {
         await page.waitForTimeout(2000);
@@ -288,7 +296,7 @@ async function executeAction(page, actionName, commentText) {
       const next = el.nextElementSibling;
       return next && next.classList.contains('note-editor');
     }).catch(() => false);
-    if (isHidden) continue;
+    if (isHidden) {continue;}
 
     const currentVal = await ta.inputValue().catch(() => '');
     if (!currentVal || currentVal.trim() === '') {
@@ -303,7 +311,7 @@ async function executeAction(page, actionName, commentText) {
   console.log(`      [executeAction] Select2 containers: ${select2Count}`);
   for (let i = 0; i < select2Count; i++) {
     const select2 = select2s.nth(i);
-    if (!await select2.isVisible().catch(() => false)) continue;
+    if (!await select2.isVisible().catch(() => false)) {continue;}
 
     const renderedText = await select2.locator('.select2-selection__rendered').textContent().catch(() => '');
     if (renderedText && renderedText.trim() !== '' && !renderedText.includes('Select') && renderedText.trim() !== '×') {
@@ -338,7 +346,7 @@ async function executeAction(page, actionName, commentText) {
   const cbCount = await checkboxes.count();
   for (let i = 0; i < cbCount; i++) {
     const cb = checkboxes.nth(i);
-    if (!await cb.isVisible().catch(() => false)) continue;
+    if (!await cb.isVisible().catch(() => false)) {continue;}
     
     const isChecked = await cb.isChecked().catch(() => false);
     if (!isChecked) {
@@ -374,7 +382,7 @@ async function executeAction(page, actionName, commentText) {
     
     console.log(`      [executeAction] Submit result: ${submitSucceeded ? 'SUCCESS' : 'STAYED ON PAGE (validation failed?)'}`);
     console.log(`      [executeAction] Landed on URL: ${urlAfterSubmit}`);
-    if (errorMsg) console.log(`      [executeAction] Error on page: ${errorMsg.trim()}`);
+    if (errorMsg) {console.log(`      [executeAction] Error on page: ${errorMsg.trim()}`);}
     
     return submitSucceeded;
   }
@@ -399,7 +407,7 @@ async function executeAction(page, actionName, commentText) {
  * @param {boolean} [options.includeEngineerPhase=true] - Whether to run Phase 2
  */
 async function cleanupSerials(serials, { prefix = '[Cleanup]', includeEngineerPhase = true } = {}) {
-  if (!serials || serials.length === 0) return;
+  if (!serials || serials.length === 0) {return;}
 
   let browser;
   try {
@@ -427,7 +435,7 @@ async function cleanupSerials(serials, { prefix = '[Cleanup]', includeEngineerPh
         }
 
         const status = await detectStatus(page);
-        if (!status) break;
+        if (!status) {break;}
 
         console.log(`   🔧 ${prefix} S/N ${serial}: found in status "${status}"`);
 
@@ -437,7 +445,7 @@ async function cleanupSerials(serials, { prefix = '[Cleanup]', includeEngineerPh
           break;
         }
 
-        if (!await openFirstRma(page)) break;
+        if (!await openFirstRma(page)) {break;}
 
         if (status === 'Submitted' || status === 'Received') {
           const ok = await executeAction(page, 'Reject', `${prefix} Auto-rejected for test cleanup.`);
@@ -503,7 +511,7 @@ async function cleanupSerials(serials, { prefix = '[Cleanup]', includeEngineerPh
           while (iterations++ < MAX_ITERATIONS) {
             const rowCount = await filterBySerial(page, serial);
             console.log(`      [Phase 2] Filtered S/N ${serial}: ${rowCount} rows, iteration: ${iterations}`);
-            if (rowCount === 0) break;
+            if (rowCount === 0) {break;}
 
             const status = await detectStatus(page);
 
@@ -599,12 +607,12 @@ async function cleanupSerials(serials, { prefix = '[Cleanup]', includeEngineerPh
 
           while (iterations++ < MAX_ITERATIONS) {
             const rowCount = await filterBySerial(page, serial);
-            if (rowCount === 0) break;
+            if (rowCount === 0) {break;}
 
             const status = await detectStatus(page);
-            if (!status) break;
+            if (!status) {break;}
 
-            if (!await openFirstRma(page)) break;
+            if (!await openFirstRma(page)) {break;}
 
             if (status === 'Received' || status === 'Submitted') {
               const ok = await executeAction(page, 'Reject', `${prefix} Auto-rejected for test cleanup.`);
@@ -638,7 +646,7 @@ async function cleanupSerials(serials, { prefix = '[Cleanup]', includeEngineerPh
   } catch (err) {
     // Cleanup is best-effort — log but don't fail the suite
     console.warn(`   ⚠️  ${prefix} RMA cleanup error: ${err.message.split('\n')[0]}`);
-    if (browser) await browser.close().catch(() => {});
+    if (browser) {await browser.close().catch(() => {});}
   }
 }
 

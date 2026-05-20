@@ -44,7 +44,8 @@ class ManageAddressPage {
     this.streetInput         = page.locator('input[name*="street"], input[placeholder*="Street" i]').first();
     this.zipcodeInput        = page.locator('input[name*="zip"], input[name*="zipcode"], input[placeholder*="Zip" i]').first();
     this.cityInput           = page.locator('input[name*="city"], input[placeholder*="City" i]').first();
-    this.countrySelect       = page.locator('select[name*="country"]').first();
+    this.countryInput        = page.locator('#country, input[name="country"]').first();
+    this.countrySelect       = page.locator('#country, select[name="country"]').first();
     this.phoneInput          = page.locator('input[name*="phone"], input[placeholder*="Phone" i]').first();
     this.submitBtn           = page.locator('button:has-text("Submit"), button[type="submit"]').first();
     this.backBtn             = page.locator('a:has-text("Back"), button:has-text("Back")').first();
@@ -61,11 +62,11 @@ class ManageAddressPage {
 
   // ─── List Actions ─────────────────────────────────────────────────────────────
   async getRowCount() {
-    return await this.tableRows.count();
+    return this.tableRows.count();
   }
 
   async getTableHeaders() {
-    return await this.addressTable.locator('thead th').allTextContents();
+    return this.addressTable.locator('thead th').allTextContents();
   }
 
   async clickAddNew() {
@@ -81,7 +82,7 @@ class ManageAddressPage {
   }
 
   async getRowText(index = 0) {
-    return await this.tableRows.nth(index).textContent();
+    return this.tableRows.nth(index).textContent();
   }
 
   // ─── Filter Actions ───────────────────────────────────────────────────────────
@@ -123,47 +124,52 @@ class ManageAddressPage {
 
   // ─── Form Actions ─────────────────────────────────────────────────────────────
   async selectCustomer(customerName) {
-    const container = this.page.locator('.select2-container').first();
+    const container = this.page.locator('#select2-customer_id-container, .select2-container').first();
+    await container.waitFor({ state: 'visible', timeout: 5000 });
     await container.click();
-    await this.page.waitForTimeout(300);
-    const searchInput = this.page.locator('.select2-search__field').first();
-    await searchInput.fill(customerName);
-    await this.page.waitForTimeout(600);
-    const option = this.page.locator('.select2-results__option').filter({ hasText: customerName }).first();
+    await this.page.waitForTimeout(500);
+    const searchInput = this.page.locator('.select2-search__field:visible').first();
+    if (await searchInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await searchInput.fill(customerName);
+      await this.page.waitForTimeout(1500);
+    }
+    const option = this.page.locator('.select2-results__option:not(.select2-results__message)').filter({ hasText: customerName }).first();
+    await option.waitFor({ state: 'visible', timeout: 5000 });
     await option.click();
-    await this.page.waitForTimeout(300);
+    await this.page.waitForTimeout(2000);
   }
 
   async selectUser(userName) {
-    const containers = this.page.locator('.select2-container');
-    const userContainer = containers.nth(1);
-    await userContainer.click();
-    await this.page.waitForTimeout(300);
-    const searchInput = this.page.locator('.select2-search__field').first();
-    await searchInput.fill(userName);
-    await this.page.waitForTimeout(600);
+    const userSelect2Container = this.page.locator('#select2-user_id-container').first();
+    const userSelect2Fallback = this.page.locator('.select2-container').nth(1);
+    const container = (await userSelect2Container.isVisible({ timeout: 3000 }).catch(() => false))
+      ? userSelect2Container
+      : userSelect2Fallback;
+    await container.waitFor({ state: 'visible', timeout: 5000 });
+    await container.click();
+    await this.page.waitForTimeout(1000);
+    const searchInput = this.page.locator('.select2-search__field:visible').first();
+    if (await searchInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await searchInput.fill(userName);
+      await this.page.waitForTimeout(1500);
+    }
     const option = this.page.locator('.select2-results__option').filter({ hasText: userName }).first();
+    await option.waitFor({ state: 'visible', timeout: 5000 });
     await option.click();
-    await this.page.waitForTimeout(300);
+    await this.page.waitForTimeout(500);
   }
 
   async fillAddressForm({ contactName, company, building, street, zipcode, city, country, phone }) {
-    if (contactName) await this.contactNameInput.fill(contactName);
-    if (company)     await this.companyInput.fill(company);
-    if (building)    await this.buildingInput.fill(building).catch(() => {});
-    if (street)      await this.streetInput.fill(street);
-    if (zipcode)     await this.zipcodeInput.fill(zipcode);
-    if (city)        await this.cityInput.fill(city);
+    if (contactName) {await this.contactNameInput.fill(contactName);}
+    if (company)     {await this.companyInput.fill(company);}
+    if (building)    {await this.buildingInput.fill(building).catch(() => {});}
+    if (street)      {await this.streetInput.fill(street);}
+    if (zipcode)     {await this.zipcodeInput.fill(zipcode);}
+    if (city)        {await this.cityInput.fill(city);}
     if (country) {
-      await this.countrySelect.evaluate((node, c) => {
-        const option = Array.from(node.options).find(o => o.text.includes(c) || o.value === c);
-        if (option) {
-          node.value = option.value;
-          node.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      }, country).catch(() => {});
+      await this.countryInput.fill(country);
     }
-    if (phone)       await this.phoneInput.fill(phone);
+    if (phone)       {await this.phoneInput.fill(phone);}
   }
 
   async submitForm() {
@@ -179,7 +185,7 @@ class ManageAddressPage {
   // ─── Validation ───────────────────────────────────────────────────────────────
   async getValidationErrors() {
     const errors = this.page.locator('.invalid-feedback, [class*="error"], .text-danger, .help-block');
-    return await errors.allTextContents();
+    return errors.allTextContents();
   }
 
   async hasValidationError() {
@@ -189,7 +195,7 @@ class ManageAddressPage {
 
   async getSuccessMessage() {
     const msg = this.page.locator('.alert-success, [class*="success"]').first();
-    return await msg.textContent().catch(() => '');
+    return msg.textContent().catch(() => '');
   }
 }
 

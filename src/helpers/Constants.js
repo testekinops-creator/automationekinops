@@ -9,7 +9,7 @@ require('dotenv').config();
  */
 function env(envKey, fallback) {
   const value = process.env[envKey];
-  if (value) return value;
+  if (value) {return value;}
   if (process.env.CI === 'true' && !fallback) {
     throw new Error(`Missing required env var in CI: ${envKey}`);
   }
@@ -129,6 +129,7 @@ const RMAConstants = {
     validSerial: process.env.RMA_VALID_SERIAL || 'T1138004504037565',
     validSerial2: 'L1040004215100962',
     ciSerial: 'L1040003043099099',   // Serial for CI / customer-reassignment tests
+    workflowSerial: 'S2513008343588978', // Dedicated serial for workflow & edit-rma tests
     invalidSerial: 'INVALID-SN-999',
     emptySerial: '',
     longSerial: 'A'.repeat(20),
@@ -188,7 +189,7 @@ const RMAConstants = {
     customer: {
       awaitingDevice: 'RMA - Awaiting Device',
       inProgress: 'RMA - In Progress',
-      repaired: 'RMA - RMA Repaired',
+      repaired: 'RMA Repaired',
     },
   },
 

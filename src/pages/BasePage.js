@@ -34,7 +34,7 @@ class BasePage {
    * @returns {Promise<string>} Page title
    */
   async getTitle() {
-    return await this.page.title();
+    return this.page.title();
   }
 
   /**
@@ -126,7 +126,7 @@ class BasePage {
    * @returns {Promise<string>} Element inner text
    */
   async getText(locator) {
-    return await locator.innerText();
+    return locator.innerText();
   }
 
   /**
@@ -135,7 +135,7 @@ class BasePage {
    * @returns {Promise<boolean>} True if visible
    */
   async isVisible(locator) {
-    return await locator.isVisible();
+    return locator.isVisible();
   }
 
   /**
@@ -144,7 +144,7 @@ class BasePage {
    * @returns {Promise<boolean>} True if enabled
    */
   async isEnabled(locator) {
-    return await locator.isEnabled();
+    return locator.isEnabled();
   }
 
   /**
@@ -153,7 +153,7 @@ class BasePage {
    * @returns {Promise<Buffer>} Screenshot buffer
    */
   async screenshot(name) {
-    return await this.page.screenshot({
+    return this.page.screenshot({
       path: `screenshots/${name}.png`,
       fullPage: true,
     });

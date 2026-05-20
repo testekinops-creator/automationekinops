@@ -9,8 +9,7 @@
 const { test, expect } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
 const { RMADashboardPage } = require('../../../src/pages/rma/RMADashboardPage');
-const { ViewRMAPage } = require('../../../src/pages/rma/ViewRMAPage');
-const { USERS, ROUTES, DASHBOARD } = require('../../../src/helpers/Constants');
+const { ROUTES, DASHBOARD } = require('../../../src/helpers/Constants');
 
 test.describe('RMA Dashboard — Employee View @dashboard', () => {
   // Uses project-default storageState (rmaAdmin) — no loginAs() needed

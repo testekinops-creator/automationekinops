@@ -1,3 +1,4 @@
+/* eslint-env browser */
 /**
  * tests/security/security.spec.js
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -18,7 +19,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { loginAs }      = require('../../../src/helpers/rmaAuthHelper');
-const { USERS, ROUTES, RMA, ERRORS } = require('../../../src/helpers/Constants');
+const { USERS, ROUTES, RMA } = require('../../../src/helpers/Constants');
 
 // Disable global storageState so tests start unauthenticated (required since tests use loginAs manually)
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -79,7 +80,7 @@ const EMPLOYEE_ONLY_ROUTES = [
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-async function expectNoAlertFired(page, action) {
+async function _expectNoAlertFired(page, action) {
   let alertFired = false;
   page.on('dialog', async d => { alertFired = true; await d.dismiss(); });
   await action();
@@ -101,7 +102,7 @@ async function expectNoSystemInfo(page) {
   }
 }
 
-async function getResponseHeaders(page, url) {
+async function _getResponseHeaders(page, url) {
   const response = await page.goto(url);
   return response?.headers() ?? {};
 }
@@ -191,7 +192,7 @@ test.describe('SEC-1 | Authentication Bypass', () => {
       const factoryForm = page.locator('h1,h2').filter({ hasText: /Factory Receive/i });
       const submitBtn   = page.locator('button:has-text("Submit")').first();
 
-      const hasAccess = await factoryForm.isVisible().catch(() => false) ||
+      const _hasAccess = await factoryForm.isVisible().catch(() => false) ||
                         await submitBtn.isVisible().catch(() => false);
       // Watcher should not have access even with a forged cookie attempt
       // (if server validates token server-side this will fail)
@@ -200,7 +201,7 @@ test.describe('SEC-1 | Authentication Bypass', () => {
 
   test('SEC-1-06 | Password brute force – account does not expose information', async ({ page }) => {
     await page.goto(ROUTES.login ?? '/login');
-    let prevError = '';
+    const _prevError = '';
 
     for (let i = 0; i < 3; i++) {
       const emailInput = page.locator('input[type="email"],input[name="email"]').first();
@@ -270,8 +271,8 @@ test.describe('SEC-2 | Authorization & RBAC', () => {
 
       const acceptBtn = page.locator('button:has-text("Accept"), a:has-text("Accept")');
       const rejectBtn = page.locator('button:has-text("Reject"), a:has-text("Reject")');
-      await expect(acceptBtn).not.toBeVisible();
-      await expect(rejectBtn).not.toBeVisible();
+      await expect(acceptBtn).toBeHidden();
+      await expect(rejectBtn).toBeHidden();
     }
   });
 
@@ -296,7 +297,7 @@ test.describe('SEC-2 | Authorization & RBAC', () => {
       if (response.status() === 200) {
         const body = await response.json().catch(() => ({}));
         const email = body.customer_email ?? body.user_email ?? body.email ?? '';
-        if (email) expect(email).not.toContain('testtransport');
+        if (email) {expect(email).not.toContain('testtransport');}
       } else {
         expect([403, 404]).toContain(response.status());
       }
@@ -328,8 +329,8 @@ test.describe('SEC-2 | Authorization & RBAC', () => {
     await page.waitForLoadState('networkidle');
 
     // Employee-only KPI cards must not be visible
-    await expect(page.locator('text=/Pending Accept/i').first()).not.toBeVisible();
-    await expect(page.locator('text=/Accepted.*Not Received/i').first()).not.toBeVisible();
+    await expect(page.locator('text=/Pending Accept/i').first()).toBeHidden();
+    await expect(page.locator('text=/Accepted.*Not Received/i').first()).toBeHidden();
   });
 });
 
@@ -614,11 +615,11 @@ test.describe('SEC-4 | API Security', () => {
         data: { serial_number: `SN-RATE-TEST-${i}` },
         headers: { 'Content-Type': 'application/json' },
       }).catch(() => null);
-      if (response) responses.push(response.status());
+      if (response) {responses.push(response.status());}
     }
 
     // At least some responses should be rate limited (429) after rapid requests
-    const hasRateLimit = responses.includes(429);
+    const _hasRateLimit = responses.includes(429);
     // Log for information even if rate limiting not yet implemented
     console.log(`  Rate limit test: ${responses.filter(r => r === 429).length}/30 requests rate-limited`);
     // We don't hard-fail if rate limiting not yet implemented, just log
@@ -645,7 +646,7 @@ test.describe('SEC-4 | API Security', () => {
       const items = Array.isArray(body) ? body : body.data ?? [];
       items.forEach(item => {
         const email = item.customer_email ?? item.user_email ?? '';
-        if (email) expect(email).not.toContain('testtransport');
+        if (email) {expect(email).not.toContain('testtransport');}
       });
     }
   });
@@ -692,7 +693,7 @@ test.describe('SEC-5 | Session Management', () => {
     await loginAs(page, USERS.rmaAdmin);
 
     // Capture session cookies before logout
-    const cookiesBefore = await page.context().cookies();
+    const _cookiesBefore = await page.context().cookies();
 
     // Logout
     const logoutBtn = page.locator('a:has-text("Logout"), button:has-text("Logout"), [href*="logout"]').first();
@@ -1021,7 +1022,7 @@ test.describe('SEC-10 | Security Headers', () => {
 
     const xFrameOptions = headers['x-frame-options'] ?? '';
     const csp = headers['content-security-policy'] ?? '';
-    const hasFrameProtection = xFrameOptions !== '' || csp.includes('frame-ancestors');
+    const _hasFrameProtection = xFrameOptions !== '' || csp.includes('frame-ancestors');
 
     console.log(`  X-Frame-Options: "${xFrameOptions}"`);
     console.log(`  CSP frame-ancestors: ${csp.includes('frame-ancestors') ? 'PRESENT' : 'not set'}`);
@@ -1034,7 +1035,7 @@ test.describe('SEC-10 | Security Headers', () => {
     const xCto = headers['x-content-type-options'] ?? '';
 
     console.log(`  X-Content-Type-Options: "${xCto}"`);
-    if (xCto) expect(xCto.toLowerCase()).toBe('nosniff');
+    if (xCto) {expect(xCto.toLowerCase()).toBe('nosniff');}
   });
 
   test('SEC-10-04 | Strict-Transport-Security header on HTTPS', async ({ page }) => {

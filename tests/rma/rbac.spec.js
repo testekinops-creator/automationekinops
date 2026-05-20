@@ -61,7 +61,7 @@ test.describe('RBAC — Role Access Control @rbac', () => {
       await page.goto(ROUTES.viewRma);
       await page.waitForLoadState('networkidle');
       const submitBtn = page.locator('button:has-text("Submit RMA Request"), a:has-text("Submit RMA Request")');
-      await expect(submitBtn).not.toBeVisible();
+      await expect(submitBtn).toBeHidden();
     });
 
     test('Repair Watcher cannot access Factory Receive', async ({ page }) => {
@@ -81,8 +81,8 @@ test.describe('RBAC — Role Access Control @rbac', () => {
       if (await firstRow.count() > 0) {
         await firstRow.locator('a, button').last().click();
         await page.waitForLoadState('networkidle');
-        await expect(page.locator('button:has-text("Accept"), a:has-text("Accept")')).not.toBeVisible();
-        await expect(page.locator('button:has-text("Reject"), a:has-text("Reject")')).not.toBeVisible();
+        await expect(page.locator('button:has-text("Accept"), a:has-text("Accept")')).toBeHidden();
+        await expect(page.locator('button:has-text("Reject"), a:has-text("Reject")')).toBeHidden();
       }
     });
   });
@@ -99,8 +99,8 @@ test.describe('RBAC — Role Access Control @rbac', () => {
       await page.goto(ROUTES.rmaDashboard);
       await page.waitForLoadState('networkidle');
       await expect(page.locator('text=/Awaiting Device/i')).toBeVisible();
-      await expect(page.locator('text=/Pending Accept/i')).not.toBeVisible();
-      await expect(page.locator('text=/Accepted.*Not Received/i')).not.toBeVisible();
+      await expect(page.locator('text=/Pending Accept/i')).toBeHidden();
+      await expect(page.locator('text=/Accepted.*Not Received/i')).toBeHidden();
     });
 
     test('Customer cannot access Factory Receive', async ({ page }) => {
@@ -118,8 +118,8 @@ test.describe('RBAC — Role Access Control @rbac', () => {
     test('Customer sidebar does not show Factory links', async ({ page }) => {
       await page.goto(ROUTES.rmaDashboard);
       await page.waitForLoadState('networkidle');
-      await expect(page.locator('nav a:has-text("Factory Receive"), .sidebar a:has-text("Factory Receive")')).not.toBeVisible();
-      await expect(page.locator('nav a:has-text("Factory Insert"), .sidebar a:has-text("Factory Insert")')).not.toBeVisible();
+      await expect(page.locator('nav a:has-text("Factory Receive"), .sidebar a:has-text("Factory Receive")')).toBeHidden();
+      await expect(page.locator('nav a:has-text("Factory Insert"), .sidebar a:has-text("Factory Insert")')).toBeHidden();
     });
 
     test('Customer can only see their own RMAs', async ({ page }) => {

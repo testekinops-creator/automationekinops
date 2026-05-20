@@ -1,7 +1,7 @@
 /**
  * Debug test — investigate the Repair modal DOM to fix rmaCleanup
  */
-const { test, expect } = require('@playwright/test');
+const { test } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
 const { ROUTES } = require('../../../src/helpers/Constants');
 

@@ -47,7 +47,7 @@ async function openWorkflowModal(page, actionName) {
     `button:has-text("${actionName}"), a.btn:has-text("${actionName}"), a[href*="closeview"]:has-text("${actionName}"), a[href*="workflow"]:has-text("${actionName}")`
   ).first();
   const isVisible = await btn.isVisible({ timeout: 5000 }).catch(() => false);
-  if (!isVisible) return false;
+  if (!isVisible) {return false;}
 
   const urlBefore = page.url();
   await btn.click();

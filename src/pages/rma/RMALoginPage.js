@@ -103,7 +103,7 @@ class RMALoginPage extends BasePage {
   }
 
   async getErrorText() {
-    return await this.errorMessage.first().textContent();
+    return this.errorMessage.first().textContent();
   }
 
   async expectRedirectedToLogin() {

@@ -93,7 +93,7 @@ class FactoryReceivePage extends BasePage {
   }
 
   async isNotifyCheckedByDefault() {
-    return await this.notifyCheckbox.isChecked();
+    return this.notifyCheckbox.isChecked();
   }
 
   async uncheckNotify() {
@@ -108,11 +108,11 @@ class FactoryReceivePage extends BasePage {
   }
 
   async getAddedSerialsCount() {
-    return await this.addedItemsList.locator('tr').count();
+    return this.addedItemsList.locator('tr').count();
   }
 
   async getDeviceInfo() {
-    return await this.deviceInfoBlock.textContent();
+    return this.deviceInfoBlock.textContent();
   }
 }
 

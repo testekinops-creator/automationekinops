@@ -8,7 +8,7 @@
  * New roles: add an entry to ROLES_TO_CACHE below.
  */
 const { test: setup } = require('@playwright/test');
-const { loginAs, setCookieConsent } = require('../src/helpers/rmaAuthHelper');
+const { loginAs } = require('../src/helpers/rmaAuthHelper');
 const { USERS } = require('../src/helpers/Constants');
 const path = require('path');
 

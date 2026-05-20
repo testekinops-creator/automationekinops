@@ -97,7 +97,7 @@ async function loginAs(page, user) {
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     const success = await _attemptLogin(page, user);
-    if (success) return;
+    if (success) {return;}
 
     if (attempt < MAX_RETRIES) {
       const backoff = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s, 16s

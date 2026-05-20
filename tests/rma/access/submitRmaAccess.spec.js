@@ -8,7 +8,7 @@
 const { test, expect } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
 const { SubmitRMAPage } = require('../../../src/pages/rma/SubmitRMAPage');
-const { USERS, ROUTES } = require('../../../src/helpers/Constants');
+const { USERS } = require('../../../src/helpers/Constants');
 
 // ============================================================================
 // RBAC EXPECTED STATE MATRIX

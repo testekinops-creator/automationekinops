@@ -16,20 +16,39 @@
 const { test, expect } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
 const { ViewRMAPage } = require('../../../src/pages/rma/ViewRMAPage');
-const { ROUTES } = require('../../../src/helpers/Constants');
+const { SubmitRMAPage } = require('../../../src/pages/rma/SubmitRMAPage');
+const { cleanupSerials } = require('../../../src/helpers/rmaCleanup');
+const { ROUTES, RMA } = require('../../../src/helpers/Constants');
+
+/** Dedicated serial for edit-rma tests — same as workflow tests. */
+const EDIT_TEST_SERIAL = RMA.workflowSerial;
 
 // ─── Helper: Navigate to an RMA detail in a given status and click Edit ───────
 async function navigateToEditPage(page, status) {
+  console.log(`  [navigateToEditPage] Step 1: goto /rma/list`);
   await page.goto(ROUTES.viewRma);
   await page.waitForLoadState('networkidle');
+  console.log(`  [navigateToEditPage] Step 1 done. URL: ${page.url()}`);
+
   const vrPage = new ViewRMAPage(page);
+  // For Submitted status, filter by the dedicated test serial and status to find the beforeAll-created RMA
+  if (status === 'Submitted') {
+    await vrPage.filterRmaList({ status: 'Submitted', keyword: EDIT_TEST_SERIAL });
+  }
+
+  // Debug: count table rows and check for "No Records"
+  const rowCount = await page.locator('table tbody tr').count().catch(() => 0);
+  const noRecords = await page.locator('text=/no records/i').isVisible().catch(() => false);
+  console.log(`  [navigateToEditPage] Step 8: Table rows = ${rowCount}, No Records = ${noRecords}`);
+
   const found = await vrPage.goToRmaDetailByStatus(status);
-  if (!found) return false;
+  console.log(`  [navigateToEditPage] Step 9: goToRmaDetailByStatus('${status}') = ${found}`);
+  if (!found) {return false;}
 
   // Click the Edit button
   const editBtn = page.locator('a.btn:has-text("Edit"), button:has-text("Edit")').first();
   const isVisible = await editBtn.isVisible({ timeout: 5000 }).catch(() => false);
-  if (!isVisible) return false;
+  if (!isVisible) {return false;}
 
   await editBtn.click();
   await page.waitForLoadState('networkidle');
@@ -44,6 +63,74 @@ async function navigateToEditPage(page, status) {
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('EDIT-RMA | Edit RMA Request — Admin @edit-rma', () => {
   test.use({ storageState: getStorageStatePath('rmaAdmin') });
+
+  // ── Setup: Submit an RMA so "Submitted" status is guaranteed ──────────────
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(120_000);
+    const context = await browser.newContext({
+      storageState: getStorageStatePath('rmaAdmin'),
+    });
+    const page = await context.newPage();
+    try {
+      // Cleanup stale RMA from previous crashed run
+      await cleanupSerials([EDIT_TEST_SERIAL], {
+        prefix: '[EDIT-Setup]',
+        includeEngineerPhase: true,
+      });
+
+      const submitPage = new SubmitRMAPage(page);
+      await submitPage.goto();
+      await submitPage.fillSerialNumber(EDIT_TEST_SERIAL);
+
+      const productName = await submitPage.getProductName();
+      console.log(`  [EDIT-Setup] Product resolved: "${productName}"`);
+
+      if (await submitPage.isDuplicateSerialErrorVisible()) {
+        console.log(`  [EDIT-Setup] Serial ${EDIT_TEST_SERIAL} already has an active RMA — skipping creation`);
+        return;
+      }
+
+      await submitPage.selectCustomer(RMA.customerName);
+      await submitPage.selectCustomerUser(RMA.customerUsername);
+
+      // Select Return Location and RMA Type (mandatory, populated via AJAX after customer selection)
+      await page.waitForTimeout(1500);
+      const selectFields = ['select[name="return_location_id"]', 'select[name="rma_type"]'];
+      for (const selector of selectFields) {
+        const selectEl = page.locator(selector).first();
+        if (await selectEl.isVisible({ timeout: 3000 }).catch(() => false)) {
+          const currentVal = await selectEl.inputValue().catch(() => '');
+          if (!currentVal || currentVal === '' || currentVal === '0') {
+            await selectEl.selectOption({ index: 1 }).catch(() => {});
+            await page.waitForTimeout(300);
+          }
+        }
+      }
+
+      await submitPage.fillNoteForRepair('Edit-RMA test setup — auto-created RMA for edit verification');
+      await submitPage.clickSave();
+
+      const url = page.url();
+      if (url.includes('/rma/add')) {
+        console.log(`  [EDIT-Setup] ⚠️ RMA creation may have failed — still on submit page`);
+      } else {
+        console.log(`  [EDIT-Setup] ✅ RMA created with S/N ${EDIT_TEST_SERIAL}`);
+      }
+    } finally {
+      await page.close();
+      await context.close();
+    }
+  });
+
+  // ── Teardown: Close the RMA so the serial is available for future runs ────
+  test.afterAll(async () => {
+    // Cleanup (Reject → Close) can take 60-90s — extend the hook timeout
+    test.setTimeout(120_000);
+    await cleanupSerials([EDIT_TEST_SERIAL], {
+      prefix: '[EDIT-Teardown]',
+      includeEngineerPhase: true,
+    });
+  });
 
   test('EDIT-001 | Edit button on Submitted RMA opens edit form', async ({ page }) => {
     const onEditPage = await navigateToEditPage(page, 'Submitted');
@@ -152,7 +239,7 @@ test.describe('EDIT-RMA | Edit Screen — Repair Diagnostic & Standardized Fault
   test('EDIT-DIAG-001 | Repair Diagnostic field visible on edit form', async ({ page }) => {
     // Try Received or On Hold (where these fields are most relevant)
     let onEditPage = await navigateToEditPage(page, 'Received');
-    if (!onEditPage) onEditPage = await navigateToEditPage(page, 'On-Hold');
+    if (!onEditPage) {onEditPage = await navigateToEditPage(page, 'On-Hold');}
     if (!onEditPage) { test.skip(true, 'No editable RMA available'); return; }
 
     const diagLabel = page.locator('text=/Repair Diagnostic/i').first();
@@ -161,7 +248,7 @@ test.describe('EDIT-RMA | Edit Screen — Repair Diagnostic & Standardized Fault
 
   test('EDIT-DIAG-002 | Standardized Faults displayed as checkboxes', async ({ page }) => {
     let onEditPage = await navigateToEditPage(page, 'Received');
-    if (!onEditPage) onEditPage = await navigateToEditPage(page, 'On-Hold');
+    if (!onEditPage) {onEditPage = await navigateToEditPage(page, 'On-Hold');}
     if (!onEditPage) { test.skip(true, 'No editable RMA available'); return; }
 
     const faultsLabel = page.locator('text=/Standardized Fault/i').first();
@@ -181,11 +268,11 @@ test.describe('EDIT-RMA | Edit Screen — Repair Diagnostic & Standardized Fault
 
   test('EDIT-DIAG-003 | Selecting Repair Diagnostic dynamically loads Standardized Faults', async ({ page }) => {
     let onEditPage = await navigateToEditPage(page, 'Received');
-    if (!onEditPage) onEditPage = await navigateToEditPage(page, 'On-Hold');
+    if (!onEditPage) {onEditPage = await navigateToEditPage(page, 'On-Hold');}
     if (!onEditPage) { test.skip(true, 'No editable RMA available'); return; }
 
     // Find Repair Diagnostic Select2 and select "Not identified"
-    const diagSelect2 = page.locator('.select2-container').filter({
+    const _diagSelect2 = page.locator('.select2-container').filter({
       has: page.locator('xpath=ancestor::div[contains(., "Repair Diagnostic")]')
     }).first();
 

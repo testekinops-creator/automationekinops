@@ -18,11 +18,11 @@
  */
 
 const { test, expect } = require('@playwright/test');
-const { getStorageStatePath, loginAs } = require('../../../src/helpers/rmaAuthHelper');
+const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
 const { SubmitRMAPage } = require('../../../src/pages/rma/SubmitRMAPage');
-const { ViewRMAPage } = require('../../../src/pages/rma/ViewRMAPage');
+// const { ViewRMAPage } = require('../../../src/pages/rma/ViewRMAPage');
 const { RMADashboardPage } = require('../../../src/pages/rma/RMADashboardPage');
-const { USERS, ROUTES, RMA, CUSTOMERS } = require('../../../src/helpers/Constants');
+const { ROUTES, RMA, CUSTOMERS } = require('../../../src/helpers/Constants');
 
 // Shared state across tests in this file
 let createdRmaId = '';
@@ -105,7 +105,7 @@ test.describe.serial('CUSTOMER-REASSIGNMENT | Full Lifecycle @customer-reassignm
     // Pattern 1: URL contains /rma/request/view/<id>
     if (url.includes('/rma/request/')) {
       const match = url.match(/\/rma\/request\/(?:view\/)?(\d+)/);
-      if (match) createdRmaId = `RMA-${match[1]}`;
+      if (match) {createdRmaId = `RMA-${match[1]}`;}
     }
 
     // Pattern 2: Page content has RMA-<id>
@@ -113,7 +113,7 @@ test.describe.serial('CUSTOMER-REASSIGNMENT | Full Lifecycle @customer-reassignm
       const rmaIdEl = page.locator('text=/RMA-\\d+/').first();
       const rmaIdText = await rmaIdEl.textContent({ timeout: 5000 }).catch(() => '');
       const idMatch = rmaIdText?.match(/RMA-\d+/i);
-      if (idMatch) createdRmaId = idMatch[0];
+      if (idMatch) {createdRmaId = idMatch[0];}
     }
 
     // Pattern 3: Go to RMA list and find the most recent one with our serial
@@ -130,20 +130,20 @@ test.describe.serial('CUSTOMER-REASSIGNMENT | Full Lifecycle @customer-reassignm
         const rmaBtn = serialRow.locator('button, a').filter({ hasText: /RMA-\d+/i }).first();
         const rmaText = await rmaBtn.textContent().catch(() => '');
         const btnMatch = rmaText?.match(/RMA-\d+/i);
-        if (btnMatch) createdRmaId = btnMatch[0];
+        if (btnMatch) {createdRmaId = btnMatch[0];}
 
         // Fallback: get first cell text
         if (!createdRmaId) {
           const firstCell = await serialRow.locator('td').first().textContent().catch(() => '');
           const cellMatch = firstCell?.match(/RMA-\d+/i);
-          if (cellMatch) createdRmaId = cellMatch[0];
+          if (cellMatch) {createdRmaId = cellMatch[0];}
         }
 
         // Fallback: get all text from the row and extract
         if (!createdRmaId) {
           const allText = await serialRow.textContent().catch(() => '');
           const allMatch = allText?.match(/RMA-\d+/i);
-          if (allMatch) createdRmaId = allMatch[0];
+          if (allMatch) {createdRmaId = allMatch[0];}
         }
       }
     }
@@ -169,7 +169,7 @@ test.describe.serial('CUSTOMER-REASSIGNMENT | Full Lifecycle @customer-reassignm
   // ═══════════════════════════════════════════════════════════════════════════════
   test('TC-CR-002 | RMA is visible in Customer One RMA list', async ({ browser }) => {
     // Skip only if we know TC-CR-001 definitively failed (not just missing ID)
-    const searchTerm = createdRmaId || RMA.ciSerial;
+    const _searchTerm = createdRmaId || RMA.ciSerial;
     const context = await browser.newContext({ storageState: getStorageStatePath('customerOne') });
     const page = await context.newPage();
 
@@ -191,7 +191,7 @@ test.describe.serial('CUSTOMER-REASSIGNMENT | Full Lifecycle @customer-reassignm
   // ═══════════════════════════════════════════════════════════════════════════════
   test('TC-CR-003 | Admin edits RMA — reassigns to Customer Two', async ({ browser }) => {
     // Skip only if we know TC-CR-001 definitively failed (not just missing ID)
-    const searchTerm = createdRmaId || RMA.ciSerial;
+    const _searchTerm = createdRmaId || RMA.ciSerial;
     const context = await browser.newContext({ storageState: getStorageStatePath('rmaAdmin') });
     const page = await context.newPage();
 
@@ -272,7 +272,7 @@ test.describe.serial('CUSTOMER-REASSIGNMENT | Full Lifecycle @customer-reassignm
   // ═══════════════════════════════════════════════════════════════════════════════
   test('TC-CR-004 | RMA is NOT visible in Customer One RMA list after reassignment', async ({ browser }) => {
     // Skip only if we know TC-CR-001 definitively failed (not just missing ID)
-    const searchTerm = createdRmaId || RMA.ciSerial;
+    const _searchTerm = createdRmaId || RMA.ciSerial;
     const context = await browser.newContext({ storageState: getStorageStatePath('customerOne') });
     const page = await context.newPage();
 
@@ -294,7 +294,7 @@ test.describe.serial('CUSTOMER-REASSIGNMENT | Full Lifecycle @customer-reassignm
   // ═══════════════════════════════════════════════════════════════════════════════
   test('TC-CR-005 | RMA IS visible in Customer Two (seccustomer) RMA list', async ({ browser }) => {
     // Skip only if we know TC-CR-001 definitively failed (not just missing ID)
-    const searchTerm = createdRmaId || RMA.ciSerial;
+    const _searchTerm = createdRmaId || RMA.ciSerial;
     const context = await browser.newContext({ storageState: getStorageStatePath('seccustomer') });
     const page = await context.newPage();
 
@@ -316,7 +316,7 @@ test.describe.serial('CUSTOMER-REASSIGNMENT | Full Lifecycle @customer-reassignm
   // ═══════════════════════════════════════════════════════════════════════════════
   test('TC-CR-006 | Dashboard reflects reassignment for both customers', async ({ browser }) => {
     // Skip only if we know TC-CR-001 definitively failed (not just missing ID)
-    const searchTerm = createdRmaId || RMA.ciSerial;
+    const _searchTerm = createdRmaId || RMA.ciSerial;
 
     // Check Customer One's dashboard — count should NOT include the reassigned RMA
     const ctx1 = await browser.newContext({ storageState: getStorageStatePath('customerOne') });

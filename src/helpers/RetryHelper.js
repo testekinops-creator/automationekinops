@@ -6,7 +6,7 @@ const RetryHelper = {
     let lastError;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        return await fn();
+        return fn();
       } catch (error) {
         lastError = error;
         if (attempt < maxRetries) {

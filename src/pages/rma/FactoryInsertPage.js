@@ -98,16 +98,18 @@ class FactoryInsertPage extends BasePage {
     if (isSelect2) {
       await customerSelect2.click();
       await this.page.waitForTimeout(500);
-      const searchField = this.page.locator('.select2-search__field');
-      await searchField.fill(customerName);
-      await this.page.waitForTimeout(1500);
-      await this.page.locator('.select2-results__option').filter({ hasText: new RegExp(customerName, 'i') }).first().click();
-      await this.page.waitForTimeout(1000);
+      const searchField = this.page.locator('.select2-search__field:visible').last();
+      if (await searchField.isVisible()) {
+        await searchField.fill(customerName);
+        await this.page.waitForTimeout(1000);
+        await this.page.keyboard.press('Enter');
+        await this.page.waitForTimeout(1000);
+      }
     } else {
       // Fallback to native select
       const options = await this.customerDropdown.locator('option').allTextContents();
       const match = options.find(o => new RegExp(customerName, 'i').test(o));
-      if (match) await this.customerDropdown.selectOption({ label: match });
+      if (match) {await this.customerDropdown.selectOption({ label: match });}
     }
   }
 
@@ -121,19 +123,28 @@ class FactoryInsertPage extends BasePage {
     if (isSelect2) {
       await userSelect2.click();
       await this.page.waitForTimeout(500);
-      const searchField = this.page.locator('.select2-search__field');
-      await searchField.fill(username);
-      await this.page.waitForTimeout(1500);
-      await this.page.locator('.select2-results__option').filter({ hasText: new RegExp(username, 'i') }).first().click();
+      const searchField = this.page.locator('.select2-search__field:visible').last();
+      if (await searchField.isVisible()) {
+        await searchField.fill(username);
+        await this.page.waitForTimeout(1000);
+        await this.page.keyboard.press('Enter');
+        await this.page.waitForTimeout(1000);
+      }
     } else {
       const options = await this.userDropdown.locator('option').allTextContents();
       const match = options.find(o => new RegExp(username, 'i').test(o));
-      if (match) await this.userDropdown.selectOption({ label: match });
+      if (match) {await this.userDropdown.selectOption({ label: match });}
     }
   }
 
   async selectRmaType(type) {
-    await this.rmaTypeDropdown.selectOption({ label: type });
+    await this.rmaTypeDropdown.evaluate((el, val) => {
+      const option = Array.from(el.options).find(o => o.text.includes(val) || o.value === val);
+      if (option) {
+        el.value = option.value;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }, type);
   }
 
   async clickSubmit() {
@@ -151,7 +162,7 @@ class FactoryInsertPage extends BasePage {
   }
 
   async getRmaTypeOptions() {
-    return await this.rmaTypeDropdown.locator('option').allTextContents();
+    return this.rmaTypeDropdown.locator('option').allTextContents();
   }
 
   /**
@@ -159,7 +170,7 @@ class FactoryInsertPage extends BasePage {
    * The app hides the submit button (d-none) when serial/product validation fails.
    */
   async isSubmitVisible() {
-    return await this.submitBtn.isVisible().catch(() => false);
+    return this.submitBtn.isVisible().catch(() => false);
   }
 
   /**
@@ -189,7 +200,7 @@ class FactoryInsertPage extends BasePage {
    * @returns {Promise<boolean>}
    */
   async isClickHereLinkVisible() {
-    return await this.clickHereLink.isVisible().catch(() => false);
+    return this.clickHereLink.isVisible().catch(() => false);
   }
 
   /**
@@ -197,7 +208,7 @@ class FactoryInsertPage extends BasePage {
    * @returns {Promise<boolean>}
    */
   async isNewReturnLocationModalVisible() {
-    return await this.newReturnLocationModal.isVisible().catch(() => false);
+    return this.newReturnLocationModal.isVisible().catch(() => false);
   }
 
   /**
@@ -206,7 +217,7 @@ class FactoryInsertPage extends BasePage {
    */
   async getReturnLocationOptions() {
     await this.returnLocation.waitFor({ state: 'visible', timeout: 10_000 });
-    return await this.returnLocation.locator('option').allTextContents();
+    return this.returnLocation.locator('option').allTextContents();
   }
 
   /**
@@ -216,7 +227,7 @@ class FactoryInsertPage extends BasePage {
    * @returns {Promise<boolean>}
    */
   async isDuplicateSerialErrorVisible() {
-    return await this.duplicateSerialError.isVisible().catch(() => false);
+    return this.duplicateSerialError.isVisible().catch(() => false);
   }
 
   /**
@@ -224,7 +235,7 @@ class FactoryInsertPage extends BasePage {
    * @returns {Promise<string>}
    */
   async getDuplicateSerialErrorText() {
-    if (!await this.isDuplicateSerialErrorVisible()) return '';
+    if (!await this.isDuplicateSerialErrorVisible()) {return '';}
     return (await this.duplicateSerialError.textContent())?.trim() ?? '';
   }
 }

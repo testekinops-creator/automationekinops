@@ -8,7 +8,7 @@
  */
 const { test, expect } = require('@playwright/test');
 const { canAccess, getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
-const { USERS, ROUTES } = require('../../../src/helpers/Constants');
+const { ROUTES } = require('../../../src/helpers/Constants');
 
 test.describe('RBAC — Role Access Control @rbac', () => {
 
@@ -113,8 +113,8 @@ test.describe('RBAC — Role Access Control @rbac', () => {
       if (await firstRow.count() > 0) {
         await firstRow.locator('td:last-child a, td:last-child button, td:last-child i').last().click();
         await page.waitForLoadState('networkidle');
-        await expect(page.locator('button:has-text("Accept"), a:has-text("Accept")')).not.toBeVisible();
-        await expect(page.locator('button:has-text("Reject"), a:has-text("Reject")')).not.toBeVisible();
+        await expect(page.locator('button:has-text("Accept"), a:has-text("Accept")')).toBeHidden();
+        await expect(page.locator('button:has-text("Reject"), a:has-text("Reject")')).toBeHidden();
       }
     });
 
@@ -198,8 +198,8 @@ test.describe('RBAC — Role Access Control @rbac', () => {
     test('Customer sidebar does not show Factory links', async ({ page }) => {
       await page.goto(ROUTES.rmaDashboard);
       await page.waitForLoadState('networkidle');
-      await expect(page.locator('text=/Factory Receive/i').first()).not.toBeVisible();
-      await expect(page.locator('text=/Factory Insert/i').first()).not.toBeVisible();
+      await expect(page.locator('text=/Factory Receive/i').first()).toBeHidden();
+      await expect(page.locator('text=/Factory Insert/i').first()).toBeHidden();
     });
 
     test('Customer can only see their own RMAs', async ({ page }) => {

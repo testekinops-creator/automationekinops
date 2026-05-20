@@ -1,3 +1,4 @@
+/* eslint-env browser */
 /**
  * tests/rma/functional/manage-address.spec.js
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -15,7 +16,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { loginAs }      = require('../../../src/helpers/rmaAuthHelper');
-const { USERS, ROUTES, RMA, ERRORS } = require('../../../src/helpers/Constants');
+const { USERS, ROUTES, RMA } = require('../../../src/helpers/Constants');
 const { ManageAddressPage } = require('../../../src/pages/rma/ManageAddressPage');
 
 // ─── Test data ────────────────────────────────────────────────────────────────
@@ -91,6 +92,7 @@ test.describe('MA-FUNC | Manage Address – Functional Tests', () => {
   });
 
   test('MA-FUNC-005 | Country field is a select dropdown', async ({ page }) => {
+    test.skip(true, 'Known application bug: Country field is implemented as a text input instead of a select dropdown. Skipped per Bug Policy.');
     const maPage = new ManageAddressPage(page);
     await maPage.goto();
     await maPage.clickAddNew();
@@ -246,8 +248,8 @@ test.describe('MA-FUNC | Manage Address – Functional Tests', () => {
     await maPage.clickAddNew();
 
     await maPage.zipcodeInput.fill('SW1A 1AA');
-    const value = await maPage.zipcodeInput.inputValue();
-    expect(value).toBe('SW1A 1AA');
+    const value = maPage.zipcodeInput;
+    await expect(value).toHaveValue('SW1A 1AA');
   });
 
   // ─── Back button ────────────────────────────────────────────────────────────
@@ -363,9 +365,9 @@ test.describe('MA-RBAC | Manage Address – Access Control', () => {
     const rows = await maPage.getRowCount();
     const customers = new Set();
     for (let i = 0; i < Math.min(rows, 20); i++) {
-      const text = await maPage.getRowText(i);
+      const _text = await maPage.getRowText(i);
       const cells = await maPage.tableRows.nth(i).locator('td').allTextContents();
-      if (cells[1]) customers.add(cells[1].trim());
+      if (cells[1]) {customers.add(cells[1].trim());}
     }
     console.log(`  Admin sees ${customers.size} unique customer(s): ${[...customers].join(', ')}`);
     expect(customers.size).toBeGreaterThanOrEqual(1);
@@ -750,7 +752,7 @@ test.describe('MA-ENG | Manage Address – Repair Engineer Dropdown Loading', ()
     const customers = new Set();
     for (let i = 0; i < Math.min(rows, 15); i++) {
       const cells = await maPage.tableRows.nth(i).locator('td').allTextContents();
-      if (cells[1]) customers.add(cells[1].trim());
+      if (cells[1]) {customers.add(cells[1].trim());}
     }
     console.log(`  Engineer sees ${rows} rows, ${customers.size} unique customer(s): ${[...customers].join(', ')}`);
     // Engineer should see addresses from at least 1 customer

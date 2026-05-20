@@ -14,7 +14,7 @@
   "plugins": ["playwright"],
   "rules": {
     "no-console": "warn",
-    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
     "prefer-const": "error",
     "no-var": "error",
     "eqeqeq": ["error", "always"],

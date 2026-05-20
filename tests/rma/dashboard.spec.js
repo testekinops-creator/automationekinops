@@ -6,7 +6,7 @@
 const { test, expect } = require('@playwright/test');
 const { loginAs } = require('../../src/helpers/rmaAuthHelper');
 const { RMADashboardPage } = require('../../src/pages/rma/RMADashboardPage');
-const { ViewRMAPage } = require('../../src/pages/rma/ViewRMAPage');
+// const { ViewRMAPage } = require('../../src/pages/rma/ViewRMAPage');
 const { USERS, ROUTES, DASHBOARD } = require('../../src/helpers/Constants');
 
 test.describe('RMA Dashboard — Employee View @dashboard', () => {
@@ -112,8 +112,8 @@ test.describe('RMA Dashboard — Customer View @dashboard', () => {
     await expect(page.locator('text=/Awaiting Device/i').first()).toBeVisible();
     await expect(page.locator('text=/RMA In Progress/i').first()).toBeVisible();
     await expect(page.locator('text=/RMA Repaired/i').first()).toBeVisible();
-    await expect(page.locator('text=/Pending Accept/i').first()).not.toBeVisible();
-    await expect(page.locator('text=/More than 3 times/i').first()).not.toBeVisible();
+    await expect(page.locator('text=/Pending Accept/i').first()).toBeHidden();
+    await expect(page.locator('text=/More than 3 times/i').first()).toBeHidden();
   });
 
   test('TC-DASH-010 | Customer "Awaiting Device" zero-count bubble is clickable', async ({ page }) => {

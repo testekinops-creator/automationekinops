@@ -8,7 +8,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
-const { USERS, ROUTES, DASHBOARD } = require('../../../src/helpers/Constants');
+const { ROUTES, DASHBOARD } = require('../../../src/helpers/Constants');
 const { RMADashboardPage } = require('../../../src/pages/rma/RMADashboardPage');
 const fs = require('fs');
 const path = require('path');
@@ -20,7 +20,7 @@ const SHARED_FILE = path.resolve(__dirname, '..', '..', '..', '.auth', 'kpi-snap
 /** Use the POM's getCardCount — already validated against the live app */
 async function getKPICount(page, cardTitle) {
   const dashboard = new RMADashboardPage(page);
-  return await dashboard.getCardCount(cardTitle);
+  return dashboard.getCardCount(cardTitle);
 }
 
 async function captureEmployeeKPI(page) {
@@ -58,19 +58,19 @@ function saveSnapshot(roleKey, data) {
 }
 
 function loadSnapshot(roleKey) {
-  if (!fs.existsSync(SHARED_FILE)) return null;
+  if (!fs.existsSync(SHARED_FILE)) {return null;}
   try {
     return JSON.parse(fs.readFileSync(SHARED_FILE, 'utf-8'))[roleKey] || null;
   } catch { return null; }
 }
 
-async function getListRowCount(page) {
+async function _getListRowCount(page) {
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(1000);
   const showingText = await page.locator('text=/Showing.*of.*\\d+/i').first().textContent().catch(() => '');
   const totalMatch = showingText.match(/of\s+(\d+)/i);
-  if (totalMatch) return parseInt(totalMatch[1], 10);
-  return await page.locator('table tbody tr').count();
+  if (totalMatch) {return parseInt(totalMatch[1], 10);}
+  return page.locator('table tbody tr').count();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

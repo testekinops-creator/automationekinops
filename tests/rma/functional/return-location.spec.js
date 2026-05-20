@@ -15,7 +15,7 @@ const { test, expect } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
 const { SubmitRMAPage } = require('../../../src/pages/rma/SubmitRMAPage');
 const { ViewRMAPage } = require('../../../src/pages/rma/ViewRMAPage');
-const { USERS, ROUTES, RMA, CUSTOMERS, NEW_RETURN_LOCATION } = require('../../../src/helpers/Constants');
+const { ROUTES, RMA, CUSTOMERS, NEW_RETURN_LOCATION } = require('../../../src/helpers/Constants');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCENARIO 1: Return Location dropdown scoped to selected customer

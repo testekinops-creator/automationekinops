@@ -1,3 +1,4 @@
+/* eslint-env browser */
 // @ts-check
 /**
  * tests/rma/submit-rma.spec.js
@@ -10,7 +11,7 @@ const { test, expect } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
 const { SubmitRMAPage } = require('../../../src/pages/rma/SubmitRMAPage');
 const { FactoryReceivePage } = require('../../../src/pages/rma/FactoryReceivePage');
-const { USERS, ROUTES, RMA, ERRORS } = require('../../../src/helpers/Constants');
+const { ROUTES, RMA } = require('../../../src/helpers/Constants');
 
 test.describe('Submit RMA Form @submit', () => {
   test.beforeEach(async ({ page }) => {
@@ -150,7 +151,7 @@ test.describe('Submit RMA Form @submit', () => {
   });
 
   test('TC-SUB-008 | XSS payload in Note field does not execute @security', async ({ page }) => {
-    const form = new SubmitRMAPage(page);
+    const _form = new SubmitRMAPage(page);
     let alertFired = false;
     page.on('dialog', async (dialog) => { alertFired = true; await dialog.dismiss(); });
     const noteField = page.locator('#comments, textarea[name="comments"]').first();
@@ -169,7 +170,7 @@ test.describe('Submit RMA Form @submit', () => {
   });
 
   test('TC-SUB-010 | RMA Type dropdown contains options', async ({ page }) => {
-    const form = new SubmitRMAPage(page);
+    const _form = new SubmitRMAPage(page);
     const rmaType = page.locator('#rma_type, select[name="rma_type"]').first();
     await rmaType.waitFor({ state: 'visible', timeout: 10_000 });
     const options = await rmaType.locator('option').allTextContents();
@@ -380,8 +381,8 @@ test.describe('Submit RMA Form @submit', () => {
       const currentValue = await form.phoneInput.inputValue();
       console.log(`  Phone value after selection: "${currentValue}"`);
       await form.phoneInput.fill('+31201234567');
-      const newValue = await form.phoneInput.inputValue();
-      expect(newValue).toBe('+31201234567');
+      const newValue = form.phoneInput;
+      await expect(newValue).toHaveValue('+31201234567');
     }
   });
 });
@@ -457,7 +458,7 @@ test.describe('Factory Receive RMA @factory-receive', () => {
       await frPage.enterSerial(RMA.validSerial);
       await frPage.serialInput.press('Tab');
       await page.waitForTimeout(2000);
-      const errorAfterFirst = await page.locator('[class*="error"], .alert-danger, .text-danger').first().isVisible().catch(() => false);
+      const _errorAfterFirst = await page.locator('[class*="error"], .alert-danger, .text-danger').first().isVisible().catch(() => false);
       const addRowBtn = page.locator('button:has-text("Add Row"), a:has-text("Add Row")').first();
       if (await addRowBtn.isVisible().catch(() => false)) {
         await addRowBtn.click({ force: true, timeout: 5000 }).catch(() => {});
@@ -472,7 +473,7 @@ test.describe('Factory Receive RMA @factory-receive', () => {
     } catch (err) {
       console.warn('TC-FR-008 flow interrupted: ' + err.message);
     }
-    const dupError = await page.locator('text=/already|duplicate|exists/i').isVisible().catch(() => false);
+    const _dupError = await page.locator('text=/already|duplicate|exists/i').isVisible().catch(() => false);
     expect(true).toBe(true);
   });
 });

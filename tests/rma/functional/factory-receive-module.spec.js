@@ -1,3 +1,4 @@
+/* eslint-env browser */
 /**
  * tests/factory-receive-module.spec.js
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -28,7 +29,7 @@
 
 const { test, expect } = require('@playwright/test');
 const { loginAs, getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
-const { USERS, ROUTES, RMA, ERRORS } = require('../../../src/helpers/Constants');
+const { USERS, ROUTES, RMA } = require('../../../src/helpers/Constants');
 
 // ─── Test data specific to these screens ──────────────────────────────────────
 const FR = {
@@ -129,7 +130,7 @@ class FactoryReceivePage {
    */
   async getRmaDropdownOptions(rowIndex = 0) {
     const select = this.page.locator(`table tbody tr:nth-child(${rowIndex + 1}) select[name='rma_id[]']`).first();
-    return await select.locator('option').allTextContents();
+    return select.locator('option').allTextContents();
   }
 
   /**
@@ -145,7 +146,7 @@ class FactoryReceivePage {
    * Count rows in the table
    */
   async getRowCount() {
-    return await this.page.locator('table tbody tr').count();
+    return this.page.locator('table tbody tr').count();
   }
 
   async clickAddRow() {
@@ -160,7 +161,7 @@ class FactoryReceivePage {
   }
 
   async isEmailChecked() {
-    return await this.emailCheckbox.isChecked();
+    return this.emailCheckbox.isChecked();
   }
 
   async uncheckEmail() {
@@ -192,7 +193,7 @@ class FactoryInsertPage {
     this.page = page;
 
     this.heading         = page.locator('h2, h1').filter({ hasText: /Factory Insert/i }).first();
-    this.subHeading      = page.locator('text=/Create RMA \& Receive at Factory/i').first();
+    this.subHeading      = page.locator('text=/Create RMA & Receive at Factory/i').first();
     this.introText       = page.locator('text=/Factory Insert section allows/i').first();
 
     // Customer section
@@ -249,7 +250,7 @@ class FactoryInsertPage {
 
   async getRmaTypeOptions() {
     await this.rmaTypeDropdown.waitFor({ state: 'visible' });
-    return await this.rmaTypeDropdown.locator('option').allTextContents();
+    return this.rmaTypeDropdown.locator('option').allTextContents();
   }
 
   async selectRmaType(type) {
@@ -261,7 +262,7 @@ class FactoryInsertPage {
   }
 
   async isEmailChecked() {
-    return await this.emailCheckbox.isChecked();
+    return this.emailCheckbox.isChecked();
   }
 
   async clickSubmit() {
@@ -275,7 +276,7 @@ class FactoryInsertPage {
   }
 
   async isSubmitVisible() {
-    return await this.submitBtn.isVisible().catch(() => false);
+    return this.submitBtn.isVisible().catch(() => false);
   }
 
   async scrollToSubmit() {
@@ -301,7 +302,7 @@ class FactoryInsertPage {
       // Fallback to native select
       const options = await this.customerNameDropdown.locator('option').allTextContents();
       const match = options.find(o => new RegExp(customerName, 'i').test(o));
-      if (match) await this.customerNameDropdown.selectOption({ label: match });
+      if (match) {await this.customerNameDropdown.selectOption({ label: match });}
     }
   }
 
@@ -322,7 +323,7 @@ class FactoryInsertPage {
     } else {
       const options = await this.customerUsernameDropdown.locator('option').allTextContents();
       const match = options.find(o => new RegExp(username, 'i').test(o));
-      if (match) await this.customerUsernameDropdown.selectOption({ label: match });
+      if (match) {await this.customerUsernameDropdown.selectOption({ label: match });}
     }
   }
 
@@ -340,7 +341,7 @@ class FactoryInsertPage {
    * @returns {Promise<boolean>}
    */
   async isClickHereLinkVisible() {
-    return await this.clickHereLink.isVisible().catch(() => false);
+    return this.clickHereLink.isVisible().catch(() => false);
   }
 
   /**
@@ -348,7 +349,7 @@ class FactoryInsertPage {
    * @returns {Promise<boolean>}
    */
   async isNewReturnLocationModalVisible() {
-    return await this.newReturnLocationModal.isVisible().catch(() => false);
+    return this.newReturnLocationModal.isVisible().catch(() => false);
   }
 
   /**
@@ -357,7 +358,7 @@ class FactoryInsertPage {
    */
   async getReturnLocationOptions() {
     await this.returnLocationDropdown.waitFor({ state: 'visible', timeout: 10_000 });
-    return await this.returnLocationDropdown.locator('option').allTextContents();
+    return this.returnLocationDropdown.locator('option').allTextContents();
   }
 }
 
@@ -588,8 +589,8 @@ test.describe('Factory Receive RMA – Module Tests', () => {
 
       // Verify success: redirected or success message, or status changed to Received
       const url = page.url();
-      const successEl = page.locator('[class*="success"], .alert-success, text=/success/i').first();
-      const receivedBadge = page.locator('text=/Received/i').first();
+      const _successEl = page.locator('[class*="success"], .alert-success, text=/success/i').first();
+      const _receivedBadge = page.locator('text=/Received/i').first();
 
       const isSuccess = !(url.includes('/500') || url.includes('/error'));
       expect(isSuccess).toBe(true);
@@ -647,7 +648,7 @@ test.describe('Factory Receive RMA – Module Tests', () => {
 
       // No modal should be visible
       const modal = page.locator('[class*="modal"], [role="dialog"]');
-      await expect(modal).not.toBeVisible();
+      await expect(modal).toBeHidden();
     });
 
     test('TC-FR-ERR-004 | Row with error S/N cannot be submitted – Submit blocked or row skipped', async ({ page }) => {
@@ -809,8 +810,8 @@ test.describe('Factory Receive RMA – Module Tests', () => {
       await frPage.clickAddRow();
 
       const newSerialInput = page.locator('input[name="serial_number[]"]').nth(1);
-      const val = await newSerialInput.inputValue();
-      expect(val).toBe('');
+      const val = newSerialInput;
+      await expect(val).toHaveValue('');
 
       const newProductName = await frPage.getProductName(1);
       expect(newProductName).toBe('');
@@ -1073,7 +1074,7 @@ test.describe('Factory Insert RMA – Module Tests', () => {
     test('TC-FI-TYPE-002 | "Repair" is the default selected option', async ({ page }) => {
       const fiPage = new FactoryInsertPage(page);
 
-      const selectedValue = await fiPage.rmaTypeDropdown.inputValue();
+      const _selectedValue = await fiPage.rmaTypeDropdown.inputValue();
       const selectedText = await fiPage.rmaTypeDropdown.locator('option:checked').textContent();
       expect(selectedText?.trim()).toBe('Repair');
     });
@@ -1150,11 +1151,11 @@ test.describe('Factory Insert RMA – Module Tests', () => {
       const fiPage = new FactoryInsertPage(page);
       await fiPage.fillSerial('XXXXXXINVALID');
 
-      const code = await fiPage.productCodeInput.inputValue();
-      const name = await fiPage.productNameInput.inputValue();
+      const code = fiPage.productCodeInput;
+      const name = fiPage.productNameInput;
 
-      expect(code).toBe('');
-      expect(name).toBe('');
+      await expect(code).toHaveValue('');
+      await expect(name).toHaveValue('');
     });
   });
 
@@ -1219,7 +1220,7 @@ test.describe('Factory Insert RMA – Module Tests', () => {
               break;
             }
           }
-          if (inProgressSerial) break;
+          if (inProgressSerial) {break;}
         }
       }
 
@@ -1269,8 +1270,8 @@ test.describe('Factory Insert RMA – Module Tests', () => {
       expect(dialogMessage).toContain('Product Code you have entered is not found');
 
       // After pressing OK: product code field should be cleared
-      const productCodeValue = await fiPage.productCodeInput.inputValue();
-      expect(productCodeValue).toBe('');
+      const productCodeValue = fiPage.productCodeInput;
+      await expect(productCodeValue).toHaveValue('');
 
       // Submit button should be hidden or disabled
       const submitVisible = await fiPage.isSubmitVisible();
@@ -1381,7 +1382,7 @@ test.describe('Factory Insert RMA – Module Tests', () => {
       await fiPage.selectCustomerUserBySearch(RMA.customerUsername);
       
       // Wait for AJAX to populate return locations
-      await expect(page.locator('select[name="return_location_id"] option').nth(1)).toBeAttached({ timeout: 5000 }).catch(() => {});
+      try { await expect(page.locator('select[name="return_location_id"] option').nth(1)).toBeAttached({ timeout: 5000 }); } catch { /* optional wait */ }
       await fiPage.returnLocationDropdown.selectOption({ index: 1 }).catch(() => {});
       
       await fiPage.fillSerial(FR.validSN);
@@ -1396,9 +1397,9 @@ test.describe('Factory Insert RMA – Module Tests', () => {
 
       if (submitted) {
         // Check for Received status badge or success message
-        const receivedBadge = page.locator('[class*="badge"], [class*="status"]').filter({ hasText: 'Received' }).first();
+        const _receivedBadge = page.locator('[class*="badge"], [class*="status"]').filter({ hasText: 'Received' }).first();
         const successMsg = page.locator('[class*="success"], .alert-success').first();
-        const isSuccess = await receivedBadge.isVisible().catch(() => false) ||
+        const isSuccess = await _receivedBadge.isVisible().catch(() => false) ||
                           await successMsg.isVisible().catch(() => false);
         expect(isSuccess || submitted).toBe(true);
       }
@@ -1443,7 +1444,7 @@ test.describe('Factory Insert RMA – Module Tests', () => {
       await fiPage.selectCustomerUserBySearch(RMA.customerUsername);
       
       // Wait for AJAX to populate return locations
-      await expect(page.locator('select[name="return_location_id"] option').nth(1)).toBeAttached({ timeout: 5000 }).catch(() => {});
+      try { await expect(page.locator('select[name="return_location_id"] option').nth(1)).toBeAttached({ timeout: 5000 }); } catch { /* optional wait */ }
       await fiPage.returnLocationDropdown.selectOption({ index: 1 }).catch(() => {});
       
       await fiPage.fillSerial(FR.validSN);

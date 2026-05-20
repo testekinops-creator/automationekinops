@@ -1,3 +1,4 @@
+/* eslint-env browser */
 const BasePage = require('../BasePage');
 
 /**
@@ -37,7 +38,7 @@ class ViewRMAPage extends BasePage {
   }
 
   async getRowCount() {
-    return await this.tableRows.count();
+    return this.tableRows.count();
   }
 
   async getRowByRmaId(rmaId) {
@@ -57,7 +58,7 @@ class ViewRMAPage extends BasePage {
     const badge = row.locator('[class*="badge"], [class*="status-badge"], [class*="status"], span').filter({
       hasText: /Submitted|Accepted|Received|On Hold|Repaired|Rejected|Closed/i,
     }).first();
-    return await badge.evaluate((el) => ({
+    return badge.evaluate((el) => ({
       bg: window.getComputedStyle(el).backgroundColor,
       text: window.getComputedStyle(el).color,
     }));
@@ -78,15 +79,62 @@ class ViewRMAPage extends BasePage {
     await this.page.waitForLoadState('networkidle');
   }
 
-  async filterByStatus(status) {
+  async filterRmaList({ status, keyword } = {}) {
+    console.log(`    [filterRmaList] Starting filter with status="${status || ''}", keyword="${keyword || ''}"`);
+    // 1. Click Filter Data to open the panel
     await this.filterDataBtn.click();
     await this.page.waitForTimeout(500);
-    await this.page.locator(`option:has-text("${status}"), label:has-text("${status}")`).first().click();
+
+    // 2. Check if the Reset button is visible, click it to clear stale filter states
+    const resetBtn = this.page.locator('input[value="Reset"], input[name="reset"]').first();
+    const resetVisible = await resetBtn.isVisible().catch(() => false);
+    if (resetVisible) {
+      console.log(`    [filterRmaList] Reset button visible. Clicking to clear filters.`);
+      await resetBtn.click();
+      await this.page.waitForLoadState('networkidle');
+      // After Reset, the filter panel closes, so we must click Filter Data again to re-open it
+      await this.filterDataBtn.click();
+      await this.page.waitForTimeout(500);
+    }
+
+    // 3. Select Status from the Select2 dropdown if provided
+    if (status) {
+      console.log(`    [filterRmaList] Selecting status: "${status}"`);
+      // Find the select2 input field with placeholder "Select Status"
+      const statusSearchField = this.page.locator('.select2-search__field[placeholder="Select Status"]').first();
+      await statusSearchField.waitFor({ state: 'visible', timeout: 5000 });
+      await statusSearchField.click();
+      await this.page.waitForTimeout(300);
+
+      // Now click the option inside the body dropdown
+      const option = this.page.locator('.select2-results__option').filter({ hasText: new RegExp(`^${status}$`, 'i') }).first();
+      await option.waitFor({ state: 'visible', timeout: 5000 });
+      await option.click();
+      await this.page.waitForTimeout(300);
+    }
+
+    // 4. Fill Keyword with serial number if provided
+    if (keyword) {
+      console.log(`    [filterRmaList] Filling keyword: "${keyword}"`);
+      const keywordInput = this.page.locator('input[name="keyword"]').first();
+      await keywordInput.waitFor({ state: 'visible', timeout: 5000 });
+      await keywordInput.fill(keyword);
+    }
+
+    // 5. Click the Apply button (ID filterSubmit)
+    const applyBtn = this.page.locator('#filterSubmit').first();
+    await applyBtn.waitFor({ state: 'visible', timeout: 3000 });
+    await applyBtn.click();
     await this.page.waitForLoadState('networkidle');
+    console.log(`    [filterRmaList] Applied filters. URL: ${this.page.url()}`);
+  }
+
+  async filterByStatus(status) {
+    await this.filterRmaList({ status });
   }
 
   async getDashboardFilterLabel() {
-    return await this.dashboardFilter.textContent();
+    return this.dashboardFilter.textContent();
   }
 
   async expectDashboardFilter(cardName) {
@@ -207,10 +255,47 @@ class ViewRMAPage extends BasePage {
    * @returns {Promise<boolean>} true if navigation succeeded
    */
   async goToRmaDetailByStatus(status) {
-    const row = this.page.locator('tr').filter({ hasText: new RegExp(status, 'i') }).first();
-    if (await row.count() === 0) return false;
-    const viewLink = row.locator('a[aria-label="View RMA Request"], td:last-child a').first();
-    if (await viewLink.count() === 0) return false;
+    console.log(`    [goToRmaDetailByStatus] Target status: "${status}"`);
+    const rows = this.page.locator('table tbody tr');
+    const count = await rows.count().catch(() => 0);
+    console.log(`    [goToRmaDetailByStatus] Total table tbody tr count: ${count}`);
+    for (let i = 0; i < count; i++) {
+      const text = await rows.nth(i).innerText().catch(() => '');
+      console.log(`      Row ${i}: "${text.replace(/\s+/g, ' ')}"`);
+    }
+
+    const row = this.tableRows.filter({ hasText: new RegExp(`^${status}$|\\b${status}\\b`, 'i') }).first();
+    const rowCount = await row.count().catch(() => 0);
+    console.log(`    [goToRmaDetailByStatus] Matching row count: ${rowCount}`);
+    if (rowCount === 0) {
+      // Fallback to simpler regex if word boundary fails
+      const fallbackRow = this.tableRows.filter({ hasText: new RegExp(status, 'i') }).first();
+      const fallbackCount = await fallbackRow.count().catch(() => 0);
+      console.log(`    [goToRmaDetailByStatus] Fallback matching row count: ${fallbackCount}`);
+      if (fallbackCount === 0) return false;
+      return await this._clickRowLink(fallbackRow);
+    }
+    return await this._clickRowLink(row);
+  }
+
+  async _clickRowLink(row) {
+    // Log all interactive elements inside row
+    const elements = row.locator('a, button');
+    const elemCount = await elements.count().catch(() => 0);
+    console.log(`    [_clickRowLink] Total interactive elements (a, button) in row: ${elemCount}`);
+    for (let j = 0; j < elemCount; j++) {
+      const tag = await elements.nth(j).evaluate(el => el.tagName).catch(() => '');
+      const text = await elements.nth(j).innerText().catch(() => '');
+      const href = await elements.nth(j).getAttribute('href').catch(() => '');
+      const aria = await elements.nth(j).getAttribute('aria-label').catch(() => '');
+      console.log(`      Element ${j}: tag=${tag}, text="${text.trim()}", href="${href}", aria-label="${aria}"`);
+    }
+
+    const viewLink = row.locator('a[aria-label="View RMA Request"], td:last-child a, a:has-text("RMA-"), button:has-text("RMA-"), a, button').first();
+    const viewLinkCount = await viewLink.count().catch(() => 0);
+    console.log(`    [_clickRowLink] View link count: ${viewLinkCount}`);
+    if (viewLinkCount === 0) {return false;}
+
     await viewLink.click();
     await this.page.waitForLoadState('networkidle');
     return true;
@@ -258,7 +343,7 @@ class ViewRMAPage extends BasePage {
 
   /** Get count of history entries */
   async getHistoryEntryCount() {
-    return await this.historyEntries.count();
+    return this.historyEntries.count();
   }
 
   /**
@@ -301,13 +386,13 @@ class ViewRMAPage extends BasePage {
    */
   async getHistoryTableHeaders() {
     const entry = this.historyEntries.first();
-    return await entry.locator('table thead th, table th').allTextContents();
+    return entry.locator('table thead th, table th').allTextContents();
   }
 
   /** Navigate to first RMA detail and return success flag */
   async goToFirstRmaDetail() {
     const viewLink = this.page.locator('a[aria-label="View RMA Request"], td:last-child a').first();
-    if (await viewLink.count() === 0) return false;
+    if (await viewLink.count() === 0) {return false;}
     await viewLink.click();
     await this.page.waitForLoadState('networkidle');
     return true;

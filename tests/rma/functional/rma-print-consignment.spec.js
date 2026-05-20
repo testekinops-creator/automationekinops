@@ -325,7 +325,7 @@ test.describe('PRT-FUNC | Print Button Functional Tests @print', () => {
         page.context().waitForEvent('page', { timeout: 3_000 }).catch(() => null),
         vrPage.printBtn.click(),
       ]);
-      if (newPage) await newPage.close();
+      if (newPage) {await newPage.close();}
     }
 
     await page.waitForTimeout(1000);
