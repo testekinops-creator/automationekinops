@@ -4,6 +4,7 @@
  */
 const { ROUTES } = require('./Constants');
 const path = require('path');
+const config = require('./config');
 
 /**
  * Directory where cached storageState JSON files are stored.
@@ -13,13 +14,8 @@ const STORAGE_STATE_DIR = path.resolve(__dirname, '..', '..', '.auth');
 
 /**
  * Get the absolute path to a role's cached storageState JSON file.
- * Use this in test.use({ storageState: ... }) or playwright.config.js projects.
- *
  * @param {string} roleKey - Key from USERS (e.g., 'rmaAdmin', 'customerOne')
  * @returns {string} Absolute path to the .auth/<roleKey>.json file
- *
- * @example
- *   test.use({ storageState: getStorageStatePath('customerOne') });
  */
 function getStorageStatePath(roleKey) {
   return path.join(STORAGE_STATE_DIR, `${roleKey}.json`);
@@ -27,9 +23,6 @@ function getStorageStatePath(roleKey) {
 
 /**
  * Set the cookie consent cookie directly (bypasses the banner entirely).
- * The CookieConsent library (cc.js) sets a cookie named "cookieconsent_status"
- * with value "dismiss" when the user clicks "Allow Cookies".
- *
  * @param {import('@playwright/test').Page} page
  * @param {string} baseUrl - The base URL for the cookie domain
  */
@@ -56,9 +49,9 @@ async function setCookieConsent(page, baseUrl) {
  */
 async function _attemptLogin(page, user) {
   try {
-    await page.goto(process.env.RMA_BASE_URL || 'https://myconnect-acc.ekinops.com/logout', { waitUntil: 'domcontentloaded' }).catch(() => {});
+    await page.goto(config.BASE_URL || 'https://myconnect-acc.ekinops.com/logout', { waitUntil: 'domcontentloaded' }).catch(() => {});
     await page.context().clearCookies();
-    await setCookieConsent(page, process.env.RMA_BASE_URL || 'https://myconnect-acc.ekinops.com');
+    await setCookieConsent(page, config.BASE_URL || 'https://myconnect-acc.ekinops.com');
     await page.goto(ROUTES.login, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
     const emailInput = page.locator('#email');
@@ -84,31 +77,72 @@ async function _attemptLogin(page, user) {
 }
 
 /**
- * Login as a specific user with retry logic to handle server rate-limiting.
- * Sets cookie consent programmatically to avoid banner interference.
- *
- * Retries up to 3 times with exponential backoff (2s, 4s, 8s).
- *
+ * Login as a specific user with a strict 25-second wait to bypass app lockouts.
+ * The application imposes a ~24-second lockout on repeated failed/rapid logins.
  * @param {import('@playwright/test').Page} page
  * @param {{ email: string, password: string }} user
  */
 async function loginAs(page, user) {
-  const MAX_RETRIES = 5;
+  const MAX_RETRIES = 3;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     const success = await _attemptLogin(page, user);
-    if (success) {return;}
+    if (success) { return; }
 
     if (attempt < MAX_RETRIES) {
-      const backoff = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s, 16s
-      console.warn(`⚠️  Login attempt ${attempt} failed for ${user.email} — retrying in ${backoff}ms`);
-      await page.waitForTimeout(backoff);
+      // Wait 25 seconds to bypass the application's ~24-second login lockout
+      console.warn(`⚠️  Login attempt ${attempt} failed for ${user.email} — waiting 25 seconds for lockout to clear...`);
+      await page.waitForTimeout(25000);
     }
   }
 
   throw new Error(
-    `Login failed for user: ${user.email} — still on login page after ${MAX_RETRIES} attempts (possible server rate-limiting)`
+    `Login failed for user: ${user.email} — still on login page after ${MAX_RETRIES} attempts.`
   );
+}
+
+/**
+ * Switch role by loading cached storageState cookies (FAST — no UI login).
+ * The auth.setup.js phase caches sessions to .auth/<roleKey>.json.
+ * This function loads those cookies into the current page context.
+ *
+ * @param {import('@playwright/test').Page} page
+ * @param {{ email: string, password: string }} user - The USERS.xxx object
+ */
+async function switchRole(page, user) {
+  const fs = require('fs');
+  const { USERS } = require('./Constants');
+
+  // Reverse-lookup: find the roleKey from the user object
+  const roleKey = Object.entries(USERS).find(([, u]) => u.email === user.email)?.[0];
+  if (!roleKey) {
+    // Fallback to UI login if user not in USERS map
+    console.warn(`switchRole: unknown user ${user.email} — falling back to loginAs()`);
+    return loginAs(page, user);
+  }
+
+  const storagePath = getStorageStatePath(roleKey);
+  if (!fs.existsSync(storagePath)) {
+    // Fallback to UI login if no cached session
+    console.warn(`switchRole: no cached session at ${storagePath} — falling back to loginAs()`);
+    return loginAs(page, user);
+  }
+
+  // Load the cached session
+  const storageState = JSON.parse(fs.readFileSync(storagePath, 'utf8'));
+
+  // Clear existing cookies and set the cached ones
+  await page.context().clearCookies();
+  if (storageState.cookies && storageState.cookies.length > 0) {
+    await page.context().addCookies(storageState.cookies);
+  }
+
+  // Reload the current page with the new session (or go to dashboard)
+  const currentUrl = page.url();
+  const targetUrl = (currentUrl && !currentUrl.includes('about:blank') && !currentUrl.includes('/login'))
+    ? currentUrl
+    : ROUTES.rmaDashboard;
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
 }
 
 /**
@@ -116,20 +150,25 @@ async function loginAs(page, user) {
  * @param {import('@playwright/test').Page} page
  */
 async function navigateToRMA(page) {
-  await page.goto(ROUTES.rmaDashboard, { waitUntil: 'networkidle' });
+  await page.goto(ROUTES.rmaDashboard, { waitUntil: 'domcontentloaded' });
 }
 
 /**
  * Check if the current user can access a given route.
+ * Returns false if: HTTP error, redirected to login/403/unauthorized, or
+ * redirected away from the requested route (e.g. customer → dashboard).
  * @param {import('@playwright/test').Page} page
  * @param {string} route
  * @returns {Promise<boolean>}
  */
 async function canAccess(page, route) {
-  const response = await page.goto(route, { waitUntil: 'networkidle' });
+  const response = await page.goto(route, { waitUntil: 'domcontentloaded' });
   const status = response?.status() ?? 200;
   const url = page.url();
-  return status < 400 && !url.includes('/login') && !url.includes('/unauthorized') && !url.includes('/403');
+  // Blocked if: HTTP error, redirected to login/403, OR redirected away from the requested route
+  const isErrorPage = url.includes('/login') || url.includes('/unauthorized') || url.includes('/403');
+  const wasRedirected = !url.includes(route.replace(/\/$/, '')); // strip trailing slash for comparison
+  return status < 400 && !isErrorPage && !wasRedirected;
 }
 
-module.exports = { loginAs, navigateToRMA, canAccess, setCookieConsent, getStorageStatePath };
+module.exports = { loginAs, switchRole, navigateToRMA, canAccess, setCookieConsent, getStorageStatePath };

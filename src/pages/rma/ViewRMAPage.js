@@ -69,14 +69,14 @@ class ViewRMAPage extends BasePage {
     // Action column has an icon/button at the end of each row
     const actionBtn = row.locator('td:last-child a, td:last-child button, td:last-child i').first();
     await actionBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async clickRmaIdLink(rmaId) {
     // RMA IDs are clickable buttons like "RMA-23"
     const rmaLink = this.page.locator(`button:has-text("${rmaId}"), a:has-text("${rmaId}")`).first();
     await rmaLink.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async filterRmaList({ status, keyword } = {}) {
@@ -91,7 +91,7 @@ class ViewRMAPage extends BasePage {
     if (resetVisible) {
       console.log(`    [filterRmaList] Reset button visible. Clicking to clear filters.`);
       await resetBtn.click();
-      await this.page.waitForLoadState('networkidle');
+      await this.page.waitForLoadState('domcontentloaded');
       // After Reset, the filter panel closes, so we must click Filter Data again to re-open it
       await this.filterDataBtn.click();
       await this.page.waitForTimeout(500);
@@ -125,7 +125,7 @@ class ViewRMAPage extends BasePage {
     const applyBtn = this.page.locator('#filterSubmit').first();
     await applyBtn.waitFor({ state: 'visible', timeout: 3000 });
     await applyBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
     console.log(`    [filterRmaList] Applied filters. URL: ${this.page.url()}`);
   }
 
@@ -145,17 +145,18 @@ class ViewRMAPage extends BasePage {
 
   /** Print button on the RMA detail page */
   get printBtn() {
-    return this.page.locator('a, button').filter({ hasText: /Print/i }).filter({ hasNotText: /Consign/i }).first();
+    return this.page.locator('a[href*="printpdf"]').first();
   }
 
   /** Print Consign. Note button on the RMA detail page */
+  // Differentiated by href, not title (both share same title text)
   get printConsignNoteBtn() {
-    return this.page.locator('a, button').filter({ hasText: /Print Consign/i }).first();
+    return this.page.locator('a[href*="printConsignmentPdf"]').first();
   }
 
   /** EMail Consign. Note button on the RMA detail page */
   get emailConsignNoteBtn() {
-    return this.page.locator('a, button').filter({ hasText: /EMail Consign|Email Consign/i }).first();
+    return this.page.locator('a[href*="emailConsignmentPdf"]').first();
   }
 
   /**
@@ -174,47 +175,48 @@ class ViewRMAPage extends BasePage {
 
   /** Edit button on the RMA detail page */
   get editBtn() {
-    return this.page.locator('a, button').filter({ hasText: /^Edit$/i }).first();
+    return this.page.locator('a[data-bs-original-title="Edit"]').first();
   }
 
   /** Comment / Add Comment button */
   get commentBtn() {
-    return this.page.locator('a, button').filter({ hasText: /Comment/i }).first();
+    return this.page.locator('a[data-bs-original-title="Comment"]').first();
   }
 
   /** Accept action button */
   get acceptBtn() {
-    return this.page.locator('a, button').filter({ hasText: /^Accept$/i }).first();
+    return this.page.locator('a[data-bs-original-title="Accept"]').first();
   }
 
   /** Reject action button */
   get rejectBtn() {
-    return this.page.locator('a, button').filter({ hasText: /^Reject$/i }).first();
+    return this.page.locator('a[data-bs-original-title="Reject"]').first();
   }
 
   /** Receive action button */
   get receiveBtn() {
-    return this.page.locator('a, button').filter({ hasText: /^Receive$/i }).first();
+    return this.page.locator('a[data-bs-original-title="Receive"]').first();
   }
 
   /** Repair action button */
   get repairBtn() {
-    return this.page.locator('a, button').filter({ hasText: /^Repair$/i }).first();
+    return this.page.locator('a[data-bs-original-title="Repair"]').first();
   }
 
   /** On Hold action button */
   get onHoldBtn() {
-    return this.page.locator('a, button').filter({ hasText: /On Hold/i }).first();
+    return this.page.locator('a[data-bs-original-title="On Hold"]').first();
   }
 
   /** Close action button (excludes modal close icons) */
   get closeActionBtn() {
-    return this.page.locator('a.btn, button.btn, a[class*="action"], button[class*="action"]').filter({ hasText: /^Close$/i }).first();
+    return this.page.locator('a[data-bs-original-title="Close"]').first();
   }
 
   /** Back button */
+  // Differentiated by href, not text (more stable)
   get backBtn() {
-    return this.page.locator('a, button').filter({ hasText: /^Back$/i }).first();
+    return this.page.locator('a[href*="closeview"]').first();
   }
 
   /**
@@ -225,19 +227,39 @@ class ViewRMAPage extends BasePage {
    */
   async getDetailAllActionButtons() {
     return {
-      edit:         await this.editBtn.isVisible().catch(() => false),
-      comment:      await this.commentBtn.isVisible().catch(() => false),
-      accept:       await this.acceptBtn.isVisible().catch(() => false),
-      reject:       await this.rejectBtn.isVisible().catch(() => false),
-      receive:      await this.receiveBtn.isVisible().catch(() => false),
-      repair:       await this.repairBtn.isVisible().catch(() => false),
-      onHold:       await this.onHoldBtn.isVisible().catch(() => false),
-      close:        await this.closeActionBtn.isVisible().catch(() => false),
-      printConsign: await this.printConsignNoteBtn.isVisible().catch(() => false),
-      emailConsign: await this.emailConsignNoteBtn.isVisible().catch(() => false),
-      print:        await this.printBtn.isVisible().catch(() => false),
-      back:         await this.backBtn.isVisible().catch(() => false),
+      edit:         this.editBtn,
+      comment:      this.commentBtn,
+      accept:       this.acceptBtn,
+      reject:       this.rejectBtn,
+      receive:      this.receiveBtn,
+      repair:       this.repairBtn,
+      onHold:       this.onHoldBtn,
+      close:        this.closeActionBtn,
+      printConsign: this.printConsignNoteBtn,
+      emailConsign: this.emailConsignNoteBtn,
+      print:        this.printBtn,
+      back:         this.backBtn,
     };
+  }
+
+  /**
+   * Click a workflow action button and return the iframe FrameLocator.
+   * Workflow buttons use popup-window-link which opens an iframe overlay.
+   * @param {string} buttonTitle - The data-bs-original-title value (e.g. 'Accept', 'Reject', 'Repair')
+   * @returns {Promise<import('@playwright/test').FrameLocator>} The iframe FrameLocator
+   */
+  async openWorkflowPopup(buttonTitle) {
+    const btn = this.page.locator(
+      `a[data-bs-original-title="${buttonTitle}"]`
+    ).first();
+    await btn.click();
+    // Wait for iframe overlay to appear (popup-window-link opens an iframe)
+    const iframeLocator = this.page.locator('iframe#iframeWindow, iframe[src*="/rma/workflow"]').first();
+    await iframeLocator.waitFor({ state: 'visible', timeout: 15000 });
+    const iframe = this.page.frameLocator('iframe#iframeWindow, iframe[src*="/rma/workflow"]');
+    // Wait for iframe body to load
+    await iframe.locator('body').waitFor({ state: 'visible', timeout: 15000 });
+    return iframe;
   }
 
   /**
@@ -250,19 +272,55 @@ class ViewRMAPage extends BasePage {
   }
 
   /**
-   * Navigate to the detail page of an RMA with a specific status.
-   * @param {string} status - e.g. 'Submitted', 'Accepted', 'Closed', 'Rejected'
-   * @returns {Promise<boolean>} true if navigation succeeded
+   * Reset any applied filters by navigating to ?reset=1.
+   * Checks if filters are applied beyond the default "Show Only: Show All".
    */
+  async resetFilters() {
+    const filtersApplied = this.page.locator('.applied-filter-title, text=/Filters Applied/i').first();
+    const hasFilters = await filtersApplied.isVisible().catch(() => false);
+    if (hasFilters) {
+      const filterText = await this.page.locator('.applied-info-list').textContent().catch(() => '');
+      // If there are filters beyond "Show Only: Show All", reset
+      if (filterText && !/^\s*Show Only\s*:?\s*Show All\s*$/i.test(filterText.trim())) {
+        const baseUrl = this.page.url().split('?')[0];
+        await this.page.goto(baseUrl + '?reset=1');
+        await this.page.waitForLoadState('domcontentloaded');
+        await this.page.locator('table tbody tr').first()
+          .waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+      }
+    }
+  }
+
   async goToRmaDetailByStatus(status) {
     console.log(`    [goToRmaDetailByStatus] Target status: "${status}"`);
+    // Reset any leftover filters from previous tests
+    await this.resetFilters();
+
+    // Wait for the AJAX DataTable to populate (domcontentloaded fires before table loads)
+    try {
+      await this.page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15_000 });
+    } catch {
+      console.log(`    [goToRmaDetailByStatus] Table did not populate within 15s`);
+      return false;
+    }
+
+    // Use DataTable search filter to narrow results to the target status
+    try {
+      const searchInput = this.page.locator('.dataTables_filter input[type="search"]').first();
+      if (await searchInput.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await searchInput.fill(status, { timeout: 5000 });
+        // Wait for AJAX filter to reload table
+        await this.page.waitForTimeout(2000);
+        // Re-wait for filtered table rows
+        await this.page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {});
+      }
+    } catch (err) {
+      console.log(`    [goToRmaDetailByStatus] Search filter failed: ${err.message}`);
+    }
+
     const rows = this.page.locator('table tbody tr');
     const count = await rows.count().catch(() => 0);
     console.log(`    [goToRmaDetailByStatus] Total table tbody tr count: ${count}`);
-    for (let i = 0; i < count; i++) {
-      const text = await rows.nth(i).innerText().catch(() => '');
-      console.log(`      Row ${i}: "${text.replace(/\s+/g, ' ')}"`);
-    }
 
     const row = this.tableRows.filter({ hasText: new RegExp(`^${status}$|\\b${status}\\b`, 'i') }).first();
     const rowCount = await row.count().catch(() => 0);
@@ -297,7 +355,7 @@ class ViewRMAPage extends BasePage {
     if (viewLinkCount === 0) {return false;}
 
     await viewLink.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
     return true;
   }
 
@@ -391,10 +449,16 @@ class ViewRMAPage extends BasePage {
 
   /** Navigate to first RMA detail and return success flag */
   async goToFirstRmaDetail() {
+    // Wait for AJAX table to populate
+    try {
+      await this.page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15_000 });
+    } catch {
+      return false;
+    }
     const viewLink = this.page.locator('a[aria-label="View RMA Request"], td:last-child a').first();
     if (await viewLink.count() === 0) {return false;}
     await viewLink.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
     return true;
   }
 }

@@ -35,7 +35,7 @@
  */
 
 const { test, expect } = require('@playwright/test');
-const { loginAs, getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
+const { loginAs, switchRole, getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
 const { USERS, ROUTES, RMA } = require('../../../src/helpers/Constants');
 const { SubmitRMAPage } = require('../../../src/pages/rma/SubmitRMAPage');
 
@@ -70,11 +70,13 @@ async function skipWithEvidence(page, reason) {
  */
 async function openFirstRMA(page) {
   await page.goto(ROUTES.viewRma ?? '/rma/list');
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   const row = page.locator('table tbody tr').first();
   if (await row.count() === 0) {return false;}
-  await row.locator('a, button').last().click();
-  await page.waitForLoadState('networkidle');
+  await row.locator('a[aria-label="View RMA Request"]').first().click();
+  await page.waitForLoadState('domcontentloaded');
+  // Wait for AJAX DataTable to populate
+  await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
   return true;
 }
 
@@ -84,7 +86,7 @@ async function openFirstRMAAndEdit(page) {
   const editBtn = page.locator('button:has-text("Edit"), a:has-text("Edit")').first();
   if (!await editBtn.isVisible()) {return false;}
   await editBtn.click();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   return true;
 }
 
@@ -104,7 +106,7 @@ test.describe('BUG-TC-001 | Bug 1 – Factory Insert No Exception (Regression)',
 
   test('Repair Engineer: Factory Insert page loads without any JS or server exception', async ({ page }) => {
     const errors = await captureConsoleErrors(page);
-    await loginAs(page, USERS.repairEngineer);
+    await switchRole(page, USERS.repairEngineer);
 
     await page.goto(ROUTES.factoryInsert ?? '/rma/factory/add');
     await page.waitForLoadState('load');
@@ -129,7 +131,7 @@ test.describe('BUG-TC-001 | Bug 1 – Factory Insert No Exception (Regression)',
 
   test('RMA Admin: Factory Insert page loads without any exception', async ({ page }) => {
     const errors = await captureConsoleErrors(page);
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
 
     await page.goto(ROUTES.factoryInsert ?? '/rma/factory/add');
     await page.waitForLoadState('load');
@@ -147,7 +149,7 @@ test.describe('BUG-TC-001 | Bug 1 – Factory Insert No Exception (Regression)',
 test.describe('BUG-TC-002 | Bug 2 – Inactive Customer RMA Accept', () => {
 
   test('Accepting RMA from inactive customer shows friendly error, not exception', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.viewRma ?? '/rma/list');
     await page.waitForLoadState('load');
 
@@ -160,7 +162,7 @@ test.describe('BUG-TC-002 | Bug 2 – Inactive Customer RMA Accept', () => {
       return;
     }
 
-    const actionBtn = submittedRow.locator('a, button').last();
+    const actionBtn = submittedRow.locator('a[aria-label="View RMA Request"]').first();
     await actionBtn.click();
     await page.waitForLoadState('load');
 
@@ -204,7 +206,7 @@ test.describe('BUG-TC-002 | Bug 2 – Inactive Customer RMA Accept', () => {
 test.describe('BUG-TC-003 | Bug 3 – Accepted RMA Visible to Engineer/Watcher (Regression)', () => {
 
   test('Repair Engineer can see Accepted RMAs in the list', async ({ page }) => {
-    await loginAs(page, USERS.repairEngineer);
+    await switchRole(page, USERS.repairEngineer);
     await page.goto(ROUTES.viewRma ?? '/rma/list');
     await page.waitForLoadState('load');
 
@@ -221,7 +223,7 @@ test.describe('BUG-TC-003 | Bug 3 – Accepted RMA Visible to Engineer/Watcher (
   });
 
   test('Repair Watcher can see Accepted RMAs in the list', async ({ page }) => {
-    await loginAs(page, USERS.repairWatcher);
+    await switchRole(page, USERS.repairWatcher);
     await page.goto(ROUTES.viewRma ?? '/rma/list');
     await page.waitForLoadState('load');
 
@@ -234,7 +236,7 @@ test.describe('BUG-TC-003 | Bug 3 – Accepted RMA Visible to Engineer/Watcher (
   });
 
   test('Repair Engineer Dashboard reflects Accepted RMA in KPI count', async ({ page }) => {
-    await loginAs(page, USERS.repairEngineer);
+    await switchRole(page, USERS.repairEngineer);
     await page.goto(ROUTES.rmaDashboard ?? '/rma');
     await page.waitForLoadState('load');
 
@@ -251,7 +253,7 @@ test.describe('BUG-TC-003 | Bug 3 – Accepted RMA Visible to Engineer/Watcher (
 test.describe('BUG-TC-004 | Bug 4 – Consignment Note Alignment (Open P2)', () => {
 
   test('Print Consignment Note page renders without layout errors', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     const opened = await openFirstRMA(page);
     if (!opened) { await skipWithEvidence(page, 'No RMA to test'); return; }
 
@@ -263,7 +265,7 @@ test.describe('BUG-TC-004 | Bug 4 – Consignment Note Alignment (Open P2)', () 
       ]);
 
       const targetPage = newPage ?? page;
-      await targetPage.waitForLoadState('networkidle');
+      await targetPage.waitForLoadState('domcontentloaded');
 
       // No 500 error on print page
       const body = await targetPage.locator('body').textContent().catch(() => '');
@@ -286,7 +288,7 @@ test.describe('BUG-TC-004 | Bug 4 – Consignment Note Alignment (Open P2)', () 
 test.describe('BUG-TC-005 | Bug 5 – Customer Name Visible on Edit (Inactive Customer)', () => {
 
   test('Edit RMA page: Customer Name field is not empty', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
 
     const opened = await openFirstRMAAndEdit(page);
     if (!opened) { await skipWithEvidence(page, 'No editable RMA found'); return; }
@@ -313,7 +315,7 @@ test.describe('BUG-TC-005 | Bug 5 – Customer Name Visible on Edit (Inactive Cu
 test.describe('BUG-TC-006 | Bug 6 – Correct Redirect After Return Location Popup (Open P3)', () => {
 
   test('After submitting Return Location popup, user stays on Edit RMA page', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
 
     const opened = await openFirstRMAAndEdit(page);
     if (!opened) { await skipWithEvidence(page, 'No editable RMA'); return; }
@@ -361,7 +363,7 @@ test.describe('BUG-TC-006 | Bug 6 – Correct Redirect After Return Location Pop
 test.describe('BUG-TC-010 | Bug 10 – Repair Diagnostic Saved & Displayed (Regression)', () => {
 
   test('Repair Diagnostic value updated in Edit is displayed on Details page', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
 
     const opened = await openFirstRMAAndEdit(page);
     if (!opened) { await skipWithEvidence(page, 'No editable RMA'); return; }
@@ -401,7 +403,7 @@ test.describe('BUG-TC-010 | Bug 10 – Repair Diagnostic Saved & Displayed (Regr
 test.describe('BUG-TC-011 | Bug 11 – Status Displayed After Edit/Save (Regression)', () => {
 
   test('Status field shows correct value on Details page after editing and saving', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
 
     // Open any RMA and note its status
     const opened = await openFirstRMA(page);
@@ -448,7 +450,7 @@ test.describe('BUG-TC-013 | Bug 13 – Customer User Dropdown Preserved After Va
 
   test('Customer User dropdown retains value after Save triggers validation error', async ({ page }) => {
     console.log('BUG-TC-013: Starting test');
-    await loginAs(page, USERS.repairEngineer);
+    await switchRole(page, USERS.repairEngineer);
     console.log('BUG-TC-013: Logged in, going to submit RMA');
     await page.goto(ROUTES.submitRma ?? '/rma/add', { waitUntil: 'domcontentloaded' });
     console.log('BUG-TC-013: Page loaded');
@@ -504,7 +506,7 @@ test.describe('BUG-TC-013 | Bug 13 – Customer User Dropdown Preserved After Va
 test.describe('BUG-TC-014 | Bug 14 – Audit Log Human-Readable Field Labels', () => {
 
   test('Audit / History section shows user-friendly labels, not DB column names', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     const opened = await openFirstRMA(page);
     if (!opened) { await skipWithEvidence(page, 'No RMA to check audit'); return; }
 
@@ -537,14 +539,14 @@ test.describe('BUG-TC-014 | Bug 14 – Audit Log Human-Readable Field Labels', (
 test.describe('BUG-TC-015 | Bug 15 – Customer Has No Email Checkbox in Comment Popup', () => {
 
   test('Customer: Comment popup does NOT show "Send E-Mail To Customer" checkbox', async ({ page }) => {
-    await loginAs(page, USERS.customerOne);
+    await switchRole(page, USERS.customerOne);
     await page.goto(ROUTES.viewRma ?? '/rma/list');
     await page.waitForLoadState('load');
 
     const firstRow = page.locator('table tbody tr').first();
     if (await firstRow.count() === 0) { await skipWithEvidence(page, 'No RMAs for customer'); return; }
 
-    await firstRow.locator('a, button').last().click();
+    await firstRow.locator('a[aria-label="View RMA Request"]').first().click();
     await page.waitForLoadState('load');
 
     const commentBtn = page.locator('button:has-text("Comment")').first();
@@ -564,7 +566,7 @@ test.describe('BUG-TC-015 | Bug 15 – Customer Has No Email Checkbox in Comment
   });
 
   test('Admin: Comment popup DOES show "Send E-Mail To Customer" checkbox', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     const opened = await openFirstRMA(page);
     if (!opened) { await skipWithEvidence(page, 'No RMA'); return; }
 
@@ -591,7 +593,7 @@ test.describe('BUG-TC-015 | Bug 15 – Customer Has No Email Checkbox in Comment
 test.describe('BUG-TC-016 | Bug 16 – Consignment Note Comment Not Split on Two Lines', () => {
 
   test('Consignment Note page loads and comment section renders without raw HTML', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     const opened = await openFirstRMA(page);
     if (!opened) { await skipWithEvidence(page, 'No RMA'); return; }
 
@@ -604,7 +606,7 @@ test.describe('BUG-TC-016 | Bug 16 – Consignment Note Comment Not Split on Two
     ]);
 
     const targetPage = newPage ?? page;
-    await targetPage.waitForLoadState('networkidle');
+    await targetPage.waitForLoadState('domcontentloaded');
 
     const body = await targetPage.locator('body').textContent().catch(() => '');
 
@@ -624,7 +626,7 @@ test.describe('BUG-TC-016 | Bug 16 – Consignment Note Comment Not Split on Two
 test.describe('BUG-TC-020 | Bug 20 – Phone Number Accepts 15+ Characters', () => {
 
   test('Submit RMA Phone field accepts 14+ character international number', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
@@ -649,7 +651,7 @@ test.describe('BUG-TC-020 | Bug 20 – Phone Number Accepts 15+ Characters', () 
   });
 
   test('Return Address phone field accepts 15+ character number', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.manageAddress ?? '/rma/address');
     await page.waitForLoadState('load');
 
@@ -675,7 +677,7 @@ test.describe('BUG-TC-020 | Bug 20 – Phone Number Accepts 15+ Characters', () 
 test.describe('BUG-TC-023 | Bug 23 – Zip Alphanumeric 12; Phone 15+ Chars', () => {
 
   test('Zip/Postal code field accepts alphanumeric UK postcode "SW1A 1AA"', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.manageAddress ?? '/rma/address');
     await page.waitForLoadState('load');
 
@@ -700,7 +702,7 @@ test.describe('BUG-TC-023 | Bug 23 – Zip Alphanumeric 12; Phone 15+ Chars', ()
   });
 
   test('Phone fields globally accept minimum 15 characters', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
 
     const pagesToCheck = [
       ROUTES.submitRma ?? '/rma/add',
@@ -731,7 +733,7 @@ test.describe('BUG-TC-023 | Bug 23 – Zip Alphanumeric 12; Phone 15+ Chars', ()
 test.describe('BUG-TC-024 | Bug 24 – Validation Error Alerts in Correct Order', () => {
 
   test('Submit RMA empty form: validation errors appear for all mandatory fields', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
@@ -772,7 +774,7 @@ test.describe('BUG-TC-024 | Bug 24 – Validation Error Alerts in Correct Order'
 test.describe('BUG-TC-025 | Bug 25 – Country Field is Dropdown in Return Location Popup', () => {
 
   test('Return Location popup: Country field is a select dropdown with country list', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
@@ -818,7 +820,7 @@ test.describe('BUG-TC-025 | Bug 25 – Country Field is Dropdown in Return Locat
 test.describe('BUG-TC-026 | Bug 26 – Empty Save Shows Validation, Not Infinite Loading', () => {
 
   test('Submit RMA: clicking Save with no data shows validation errors within 10 seconds', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
@@ -852,7 +854,7 @@ test.describe('BUG-TC-026 | Bug 26 – Empty Save Shows Validation, Not Infinite
   });
 
   test('Submit RMA: page remains interactive after empty Save', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
@@ -1045,7 +1047,7 @@ test.describe('BUG-TC-027 | Bug 27 – Factory Insert Duplicate Serial Number Va
           // Click Save
           if (saveBtnVisible) {
             await form.clickSave();
-            await checkPage.waitForLoadState('networkidle');
+            await checkPage.waitForLoadState('domcontentloaded');
             await checkPage.waitForTimeout(1000); // Extra settle time for redirects
 
             // Verify submission: check if we left the /rma/add page or got a success message
@@ -1191,7 +1193,7 @@ test.describe('BUG-TC-027 | Bug 27 – Factory Insert Duplicate Serial Number Va
 test.describe('BUG-TC-028 | Bug 28 – Submit RMA Save Button Enhanced Validation', () => {
 
   test('TC-028a | Save button re-enables after showing validation errors', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
@@ -1212,7 +1214,7 @@ test.describe('BUG-TC-028 | Bug 28 – Submit RMA Save Button Enhanced Validatio
   });
 
   test('TC-028b | No loading spinner stuck after empty form Save', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
@@ -1229,7 +1231,7 @@ test.describe('BUG-TC-028 | Bug 28 – Submit RMA Save Button Enhanced Validatio
   });
 
   test('TC-028c | Partially filled form Save shows specific missing field errors', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
@@ -1255,7 +1257,7 @@ test.describe('BUG-TC-028 | Bug 28 – Submit RMA Save Button Enhanced Validatio
   });
 
   test('TC-028d | Form remains interactive after validation errors', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
@@ -1282,7 +1284,7 @@ test.describe('BUG-TC-028 | Bug 28 – Submit RMA Save Button Enhanced Validatio
 test.describe('BUG-TC-029 | Bug 29 – Repair Watcher Read-Only Access Enforcement', () => {
 
   test('TC-029a | Repair Watcher cannot access Submit RMA page via direct URL', async ({ page }) => {
-    await loginAs(page, USERS.repairWatcher);
+    await switchRole(page, USERS.repairWatcher);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
@@ -1300,7 +1302,7 @@ test.describe('BUG-TC-029 | Bug 29 – Repair Watcher Read-Only Access Enforceme
   });
 
   test('TC-029b | Repair Watcher "Submit RMA Request" button NOT visible in RMA List', async ({ page }) => {
-    await loginAs(page, USERS.repairWatcher);
+    await switchRole(page, USERS.repairWatcher);
     await page.goto(ROUTES.viewRma ?? '/rma/list');
     await page.waitForLoadState('load');
 
@@ -1312,14 +1314,14 @@ test.describe('BUG-TC-029 | Bug 29 – Repair Watcher Read-Only Access Enforceme
   });
 
   test('TC-029c | Repair Watcher cannot add comment on RMA detail', async ({ page }) => {
-    await loginAs(page, USERS.repairWatcher);
+    await switchRole(page, USERS.repairWatcher);
     await page.goto(ROUTES.viewRma ?? '/rma/list');
     await page.waitForLoadState('load');
 
     const firstRow = page.locator('table tbody tr').first();
     if (await firstRow.count() === 0) { await skipWithEvidence(page, 'No RMAs visible'); return; }
 
-    await firstRow.locator('a, button').last().click();
+    await firstRow.locator('a[aria-label="View RMA Request"]').first().click();
     await page.waitForLoadState('load');
 
     // "Add Comment" button should NOT be visible to Watcher
@@ -1333,14 +1335,14 @@ test.describe('BUG-TC-029 | Bug 29 – Repair Watcher Read-Only Access Enforceme
   });
 
   test('TC-029d | Repair Watcher cannot see Email Consignment Note button', async ({ page }) => {
-    await loginAs(page, USERS.repairWatcher);
+    await switchRole(page, USERS.repairWatcher);
     await page.goto(ROUTES.viewRma ?? '/rma/list');
     await page.waitForLoadState('load');
 
     const firstRow = page.locator('table tbody tr').first();
     if (await firstRow.count() === 0) { await skipWithEvidence(page, 'No RMAs visible'); return; }
 
-    await firstRow.locator('a, button').last().click();
+    await firstRow.locator('a[aria-label="View RMA Request"]').first().click();
     await page.waitForLoadState('load');
 
     // "EMail Consignment Note" button should NOT be visible
@@ -1354,7 +1356,7 @@ test.describe('BUG-TC-029 | Bug 29 – Repair Watcher Read-Only Access Enforceme
   });
 
   test('TC-029e | Repair Watcher cannot access Add New Return Address', async ({ page }) => {
-    await loginAs(page, USERS.repairWatcher);
+    await switchRole(page, USERS.repairWatcher);
     await page.goto(ROUTES.manageAddress ?? '/rma/manageaddr/');
     await page.waitForLoadState('load');
 
@@ -1372,14 +1374,14 @@ test.describe('BUG-TC-029 | Bug 29 – Repair Watcher Read-Only Access Enforceme
   });
 
   test('TC-029f | Repair Watcher has no workflow action buttons on any RMA', async ({ page }) => {
-    await loginAs(page, USERS.repairWatcher);
+    await switchRole(page, USERS.repairWatcher);
     await page.goto(ROUTES.viewRma ?? '/rma/list');
     await page.waitForLoadState('load');
 
     const firstRow = page.locator('table tbody tr').first();
     if (await firstRow.count() === 0) { await skipWithEvidence(page, 'No RMAs visible'); return; }
 
-    await firstRow.locator('a, button').last().click();
+    await firstRow.locator('a[aria-label="View RMA Request"]').first().click();
     await page.waitForLoadState('load');
 
     // None of these workflow actions should be visible
@@ -1403,7 +1405,7 @@ test.describe('BUG-TC-029 | Bug 29 – Repair Watcher Read-Only Access Enforceme
 test.describe('Previously Fixed Bugs – Regression Smoke Tests', () => {
 
   test('Bug 7 – Validation not triggered on correctly filled form (Regression)', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.submitRma ?? '/rma/add');
     await page.waitForLoadState('load');
 
@@ -1424,7 +1426,7 @@ test.describe('Previously Fixed Bugs – Regression Smoke Tests', () => {
   });
 
   test('Bug 18 – RMA List Filter comma-separated IDs returns only those records (Regression)', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     await page.goto(ROUTES.viewRma ?? '/rma/list');
     await page.waitForLoadState('load');
 
@@ -1453,7 +1455,7 @@ test.describe('Previously Fixed Bugs – Regression Smoke Tests', () => {
   });
 
   test('Bug 22 – Comment modal opens and saves without exception (Regression)', async ({ page }) => {
-    await loginAs(page, USERS.rmaAdmin);
+    await switchRole(page, USERS.rmaAdmin);
     const errors = await captureConsoleErrors(page);
 
     const opened = await openFirstRMA(page);

@@ -83,8 +83,8 @@ async function login(page, email, password) {
       if (attempt === MAX_RETRIES) {
         throw new Error(`Login failed for ${email} after ${MAX_RETRIES} attempts: ${err.message}`);
       }
-      console.log(`   ⚠️  Login attempt ${attempt} failed for ${email} — retrying in 2s`);
-      await page.waitForTimeout(2000);
+      console.log(`   ⚠️  Login attempt ${attempt} failed for ${email} — waiting 25s for lockout to clear`);
+      await page.waitForTimeout(25000);
     }
   }
 }

@@ -15,67 +15,92 @@
 const { test, expect } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
 const { ROUTES } = require('../../../src/helpers/Constants');
+const { allure } = require('allure-playwright');
+const Logger = require('../../../src/helpers/Logger');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // STANDARDIZED FAULTS LIST PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('SF-LIST | Standardized Faults List Page @standardized-faults', () => {
+  // ── Allure labels ──
+  test.beforeEach(async () => {
+    await allure.feature('Standardized Faults');
+    await allure.story('Fault Code Management');
+  });
+
+
   test.use({ storageState: getStorageStatePath('rmaAdmin') });
 
   test.beforeEach(async ({ page }) => {
     await page.goto(ROUTES.standardizedFaults);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
   });
 
   test('SF-001 | Page loads with correct title @smoke', async ({ page }) => {
+    Logger.step('SF-001 | Page loads with correct title');
+
     const heading = page.locator('h2, h3, .page-title, .content-header').filter({ hasText: /Standardized Faults/i }).first();
     await expect(heading).toBeVisible({ timeout: 10_000 });
   });
 
-  test('SF-002 | Table shows correct columns', async ({ page }) => {
+  test('SF-002 | Table shows correct columns @functional', async ({ page }) => {
+    Logger.step('SF-002 | Table shows correct columns');
+
     const table = page.locator('table').first();
     await expect(table).toBeVisible({ timeout: 10_000 });
 
     const headers = await table.locator('thead th').allTextContents();
     const headerText = headers.join(' ').toLowerCase();
-    expect(headerText).toContain('#');
-    expect(headerText).toContain('repair diagnostic');
-    expect(headerText).toContain('standardized fault');
-    expect(headerText).toContain('status');
-    expect(headerText).toContain('action');
+    await expect(headerText).toContain('#');
+    await expect(headerText).toContain('repair diagnostic');
+    await expect(headerText).toContain('standardized fault');
+    await expect(headerText).toContain('status');
+    await expect(headerText).toContain('action');
   });
 
-  test('SF-003 | Pagination text visible', async ({ page }) => {
+  test('SF-003 | Pagination text visible @functional', async ({ page }) => {
+    Logger.step('SF-003 | Pagination text visible');
+
     const pagination = page.locator('text=/Currently Viewing Page/i').first();
     await expect(pagination).toBeVisible({ timeout: 10_000 });
   });
 
-  test('SF-004 | "+ Add Standardized Fault" button visible', async ({ page }) => {
+  test('SF-004 | "+ Add Standardized Fault" button visible @functional', async ({ page }) => {
+    Logger.step('SF-004 | "+ Add Standardized Fault" button visible');
+
     const addBtn = page.locator('button:has-text("Add Standardized Fault"), a:has-text("Add Standardized Fault")').first();
     await expect(addBtn).toBeVisible({ timeout: 10_000 });
   });
 
-  test('SF-005 | "+ Manage Repair Diagnostic" button visible', async ({ page }) => {
+  test('SF-005 | "+ Manage Repair Diagnostic" button visible @functional', async ({ page }) => {
+    Logger.step('SF-005 | "+ Manage Repair Diagnostic" button visible');
+
     const manageBtn = page.locator('button:has-text("Manage Repair Diagnostic"), a:has-text("Manage Repair Diagnostic")').first();
     await expect(manageBtn).toBeVisible({ timeout: 10_000 });
   });
 
-  test('SF-006 | "Filter Data" button visible and opens filter panel', async ({ page }) => {
+  test('SF-006 | "Filter Data" button visible and opens filter panel @functional', async ({ page }) => {
+    Logger.step('SF-006 | "Filter Data" button visible and opens filter panel');
+
     const filterBtn = page.locator('button:has-text("Filter Data"), a:has-text("Filter Data")').first();
     await expect(filterBtn).toBeVisible({ timeout: 10_000 });
 
     await filterBtn.click();
-    await page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms) — use event-based wait if needed
 
     // Filter panel should be visible with fields
     const filterPanel = page.locator('text=/Repair Diagnostic/i').first();
     await expect(filterPanel).toBeVisible({ timeout: 5000 });
   });
 
-  test('SF-007 | Filter panel has Repair Diagnostic dropdown and Keyword field', async ({ page }) => {
+  test('SF-007 | Filter panel has Repair Diagnostic dropdown and Keyword field @functional', async ({ page }) => {
+    Logger.step('SF-007 | Filter panel has Repair Diagnostic dropdown and Keyword field');
+
     const filterBtn = page.locator('button:has-text("Filter Data"), a:has-text("Filter Data")').first();
     await filterBtn.click();
-    await page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms) — use event-based wait if needed
 
     // Repair Diagnostic filter
     const diagFilter = page.locator('text=/Repair Diagnostic/i').first();
@@ -94,20 +119,24 @@ test.describe('SF-LIST | Standardized Faults List Page @standardized-faults', ()
     await expect(closeBtn).toBeVisible();
   });
 
-  test('SF-008 | Edit action (pencil icon) is visible in table rows', async ({ page }) => {
+  test('SF-008 | Edit action (pencil icon) is visible in table rows @functional', async ({ page }) => {
+    Logger.step('SF-008 | Edit action (pencil icon) is visible in table rows');
+
     const editIcon = page.locator('table tbody tr').first().locator('a[title="Edit"], a i.fa-pencil, a i.fa-edit, a.edit-btn').first();
     const isVisible = await editIcon.isVisible().catch(() => false);
     // Fallback: check for any link in the Action column
     const actionLink = page.locator('table tbody tr').first().locator('td:last-child a').first();
     const actionVisible = await actionLink.isVisible().catch(() => false);
-    expect(isVisible || actionVisible, 'Edit icon or action link should be visible').toBe(true);
+    await expect(isVisible || actionVisible, 'Edit icon or action link should be visible').toBe(true);
   });
 
-  test('SF-009 | Table has data rows', async ({ page }) => {
+  test('SF-009 | Table has data rows @functional', async ({ page }) => {
+    Logger.step('SF-009 | Table has data rows');
+
     const rows = page.locator('table tbody tr');
     const count = await rows.count();
-    expect(count, 'Table should have at least 1 data row').toBeGreaterThanOrEqual(1);
-    console.log(`  Standardized Faults table: ${count} rows`);
+    await expect(count, 'Table should have at least 1 data row').toBeGreaterThanOrEqual(1);
+    Logger.info(`  Standardized Faults table: ${count} rows`);
   });
 });
 
@@ -115,12 +144,15 @@ test.describe('SF-LIST | Standardized Faults List Page @standardized-faults', ()
 // ADD STANDARDIZED FAULT (navigates to /rma/standardizedfaults/add)
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('SF-ADD | Add Standardized Fault @standardized-faults', () => {
+
   test.use({ storageState: getStorageStatePath('rmaAdmin') });
 
   // Helper: open the Add Standardized Fault overlay (loads in iframe#iframeWindow)
   async function openAddOverlay(page) {
     await page.goto(ROUTES.standardizedFaults);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const addBtn = page.locator('a:has-text("Add Standardized Fault")').first();
     await addBtn.click();
@@ -129,11 +161,13 @@ test.describe('SF-ADD | Add Standardized Fault @standardized-faults', () => {
     const iframeLocator = page.frameLocator('#iframeWindow');
     const form = iframeLocator.locator('#standardizedFaultForm, form[action*="standardizedfaults/add"], fieldset').first();
     await form.waitFor({ state: 'visible', timeout: 15_000 });
-    await page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms) — use event-based wait if needed
     return iframeLocator;
   }
 
-  test('SF-ADD-001 | Add form has Repair Diagnostic, Standardized Fault, and Status fields', async ({ page }) => {
+  test('SF-ADD-001 | Add form has Repair Diagnostic, Standardized Fault, and Status fields @functional', async ({ page }) => {
+    Logger.step('SF-ADD-001 | Add form has Repair Diagnostic, Standardized Fault, and Status fiel');
+
     const iframe = await openAddOverlay(page);
 
     // Repair Diagnostic (select dropdown) — mandatory
@@ -152,25 +186,29 @@ test.describe('SF-ADD | Add Standardized Fault @standardized-faults', () => {
     const saveBtn = iframe.locator('button:has-text("Save"), input[type="submit"][value="Save"]').first();
     await expect(saveBtn).toBeVisible();
 
-    console.log('  Add Standardized Fault overlay: all fields visible ✓');
+    Logger.info('  Add Standardized Fault overlay: all fields visible ✓');
   });
 
-  test('SF-ADD-002 | Repair Diagnostic dropdown has options', async ({ page }) => {
+  test('SF-ADD-002 | Repair Diagnostic dropdown has options @functional', async ({ page }) => {
+    Logger.step('SF-ADD-002 | Repair Diagnostic dropdown has options');
+
     const iframe = await openAddOverlay(page);
 
     const diagSelect = iframe.locator('select').first();
     const options = await diagSelect.locator('option').allTextContents();
     const realOptions = options.filter(o => o.trim() !== '' && !/^Select/i.test(o.trim()));
-    expect(realOptions.length, 'Repair Diagnostic should have options').toBeGreaterThanOrEqual(1);
-    console.log(`  Repair Diagnostic options: ${realOptions.length}`);
+    await expect(realOptions.length, 'Repair Diagnostic should have options').toBeGreaterThanOrEqual(1);
+    Logger.info(`  Repair Diagnostic options: ${realOptions.length}`);
   });
 
-  test('SF-ADD-003 | Status defaults to Active', async ({ page }) => {
+  test('SF-ADD-003 | Status defaults to Active @functional', async ({ page }) => {
+    Logger.step('SF-ADD-003 | Status defaults to Active');
+
     const iframe = await openAddOverlay(page);
 
     const activeRadio = iframe.locator('input[type="radio"][value="Active"], input[type="radio"]').first();
     const isChecked = await activeRadio.isChecked().catch(() => false);
-    expect(isChecked, 'Active radio should be checked by default').toBe(true);
+    await expect(isChecked, 'Active radio should be checked by default').toBe(true);
   });
 });
 
@@ -178,12 +216,15 @@ test.describe('SF-ADD | Add Standardized Fault @standardized-faults', () => {
 // MANAGE REPAIR DIAGNOSTICS (navigates to /rma/repairdiagnostic/manage)
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('SF-RD | Manage Repair Diagnostics @standardized-faults', () => {
+
   test.use({ storageState: getStorageStatePath('rmaAdmin') });
 
   // Helper: open the Manage Repair Diagnostics overlay (loads in iframe#iframeWindow)
   async function openManageOverlay(page) {
     await page.goto(ROUTES.standardizedFaults);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const manageBtn = page.locator('a:has-text("Manage Repair Diagnostic")').first();
     await manageBtn.click();
@@ -193,11 +234,13 @@ test.describe('SF-RD | Manage Repair Diagnostics @standardized-faults', () => {
     // Wait for the table to appear inside the iframe
     const table = iframeLocator.locator('table').first();
     await table.waitFor({ state: 'visible', timeout: 15_000 });
-    await page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms) — use event-based wait if needed
     return iframeLocator;
   }
 
-  test('SF-RD-001 | Manage Repair Diagnostic page loads with correct title', async ({ page }) => {
+  test('SF-RD-001 | Manage Repair Diagnostic page loads with correct title @functional', async ({ page }) => {
+    Logger.step('SF-RD-001 | Manage Repair Diagnostic page loads with correct title');
+
     const iframe = await openManageOverlay(page);
 
     // Check for heading text inside the iframe
@@ -208,10 +251,12 @@ test.describe('SF-RD | Manage Repair Diagnostics @standardized-faults', () => {
     const anyText = iframe.locator('text=Repair Diagnostic').first();
     const textVisible = await anyText.isVisible({ timeout: 3_000 }).catch(() => false);
 
-    expect(headingVisible || textVisible, 'Should have Repair Diagnostic heading in overlay').toBe(true);
+    await expect(headingVisible || textVisible, 'Should have Repair Diagnostic heading in overlay').toBe(true);
   });
 
-  test('SF-RD-002 | Table shows columns: #, Name, Status, Action', async ({ page }) => {
+  test('SF-RD-002 | Table shows columns: #, Name, Status, Action @functional', async ({ page }) => {
+    Logger.step('SF-RD-002 | Table shows columns: #, Name, Status, Action');
+
     const iframe = await openManageOverlay(page);
 
     const table = iframe.locator('table').first();
@@ -219,13 +264,15 @@ test.describe('SF-RD | Manage Repair Diagnostics @standardized-faults', () => {
 
     const headers = await table.locator('thead th').allTextContents();
     const headerText = headers.join(' ').toLowerCase();
-    expect(headerText).toContain('#');
-    expect(headerText).toContain('name');
-    expect(headerText).toContain('status');
-    expect(headerText).toContain('action');
+    await expect(headerText).toContain('#');
+    await expect(headerText).toContain('name');
+    await expect(headerText).toContain('status');
+    await expect(headerText).toContain('action');
   });
 
-  test('SF-RD-003 | "+ Add New Repair Diagnostic" button visible', async ({ page }) => {
+  test('SF-RD-003 | "+ Add New Repair Diagnostic" button visible @functional', async ({ page }) => {
+    Logger.step('SF-RD-003 | "+ Add New Repair Diagnostic" button visible');
+
     const iframe = await openManageOverlay(page);
 
     const addBtn = iframe.locator(
@@ -234,7 +281,9 @@ test.describe('SF-RD | Manage Repair Diagnostics @standardized-faults', () => {
     await expect(addBtn).toBeVisible({ timeout: 10_000 });
   });
 
-  test('SF-RD-004 | Add Repair Diagnostic form has Name, Status, Save/Cancel', async ({ page }) => {
+  test('SF-RD-004 | Add Repair Diagnostic form has Name, Status, Save/Cancel @functional', async ({ page }) => {
+    Logger.step('SF-RD-004 | Add Repair Diagnostic form has Name, Status, Save/Cancel');
+
     const iframe = await openManageOverlay(page);
 
     // Click the "+ Add New Repair Diagnostic" button inside the iframe
@@ -242,7 +291,7 @@ test.describe('SF-RD | Manage Repair Diagnostics @standardized-faults', () => {
       'button:has-text("Add New Repair Diagnostic"), a:has-text("Add New Repair Diagnostic")'
     ).first();
     await addBtn.click();
-    await page.waitForTimeout(1500);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1500ms)
 
     // Name input field
     const nameInput = iframe.locator('input[type="text"]').last();
@@ -259,31 +308,39 @@ test.describe('SF-RD | Manage Repair Diagnostics @standardized-faults', () => {
     await expect(cancelBtn).toBeVisible();
   });
 
-  test('SF-RD-005 | Table has existing Repair Diagnostic records', async ({ page }) => {
+  test('SF-RD-005 | Table has existing Repair Diagnostic records @functional', async ({ page }) => {
+    Logger.step('SF-RD-005 | Table has existing Repair Diagnostic records');
+
     await page.goto(ROUTES.standardizedFaults);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const manageBtn = page.locator('button:has-text("Manage Repair Diagnostic"), a:has-text("Manage Repair Diagnostic")').first();
     await manageBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const rows = page.locator('table tbody tr');
     const count = await rows.count();
-    expect(count, 'Should have existing Repair Diagnostics').toBeGreaterThanOrEqual(1);
-    console.log(`  Repair Diagnostics table: ${count} rows`);
+    await expect(count, 'Should have existing Repair Diagnostics').toBeGreaterThanOrEqual(1);
+    Logger.info(`  Repair Diagnostics table: ${count} rows`);
 
     // Verify known values from screenshots
     const tableText = await page.locator('table tbody').textContent();
-    expect(tableText).toContain('Fault on Motherboard');
+    await expect(tableText).toContain('Fault on Motherboard');
   });
 
-  test('SF-RD-006 | Edit action (pencil icon) visible in rows', async ({ page }) => {
+  test('SF-RD-006 | Edit action (pencil icon) visible in rows @functional', async ({ page }) => {
+    Logger.step('SF-RD-006 | Edit action (pencil icon) visible in rows');
+
     await page.goto(ROUTES.standardizedFaults);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const manageBtn = page.locator('button:has-text("Manage Repair Diagnostic"), a:has-text("Manage Repair Diagnostic")').first();
     await manageBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const actionLink = page.locator('table tbody tr').first().locator('td:last-child a').first();
     await expect(actionLink).toBeVisible({ timeout: 5000 });
@@ -294,27 +351,36 @@ test.describe('SF-RD | Manage Repair Diagnostics @standardized-faults', () => {
 // ACCESS CONTROL — Watcher and Customer should NOT see Standardized Faults
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('SF-ACCESS | Standardized Faults Access Control @standardized-faults', () => {
-  test('SF-ACC-001 | Repair Watcher cannot access Standardized Faults', async ({ browser }) => {
+
+  test('SF-ACC-001 | Repair Watcher cannot access Standardized Faults @functional', async ({ browser }) => {
+    Logger.step('SF-ACC-001 | Repair Watcher cannot access Standardized Faults');
+
     const context = await browser.newContext({ storageState: getStorageStatePath('repairWatcher') });
     const page = await context.newPage();
     await page.goto(ROUTES.standardizedFaults);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const url = page.url();
     const isBlocked = url.includes('/login') || url.includes('/403') || url.includes('/dashboard') || !url.includes('standardizedfaults');
-    expect(isBlocked, `Watcher should be blocked from Standardized Faults, URL: ${url}`).toBe(true);
+    await expect(isBlocked, `Watcher should be blocked from Standardized Faults, URL: ${url}`).toBe(true);
     await context.close();
   });
 
-  test('SF-ACC-002 | Customer cannot access Standardized Faults', async ({ browser }) => {
+  test('SF-ACC-002 | Customer cannot access Standardized Faults @functional', async ({ browser }) => {
+    Logger.step('SF-ACC-002 | Customer cannot access Standardized Faults');
+
     const context = await browser.newContext({ storageState: getStorageStatePath('customerOne') });
     const page = await context.newPage();
     await page.goto(ROUTES.standardizedFaults);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const url = page.url();
     const isBlocked = url.includes('/login') || url.includes('/403') || url.includes('/dashboard') || !url.includes('standardizedfaults');
-    expect(isBlocked, `Customer should be blocked from Standardized Faults, URL: ${url}`).toBe(true);
+    await expect(isBlocked, `Customer should be blocked from Standardized Faults, URL: ${url}`).toBe(true);
     await context.close();
   });
 });

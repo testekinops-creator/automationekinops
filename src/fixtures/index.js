@@ -6,7 +6,7 @@
  *
  * @example
  * const { test, expect } = require('../../src/fixtures');
- * test('my test', async ({ authenticatedPage, loginPage, dashboardPage }) => { ... });
+ * test('my test', async ({ authenticatedPage, loginPage, apiContext }) => { ... });
  */
 const base = require('@playwright/test');
 const { mergeTests } = require('@playwright/test');
@@ -15,9 +15,11 @@ const { mergeTests } = require('@playwright/test');
 const { test: authTest } = require('./auth.fixture');
 const { test: pagesTest } = require('./pages.fixture');
 const { test: testDataTest } = require('./testData.fixture');
+const { test: apiTest } = require('./api.fixture');
 
 // Merge all fixtures into a single test object
-const test = mergeTests(authTest, pagesTest, testDataTest);
+const test = mergeTests(authTest, pagesTest, testDataTest, apiTest);
 const expect = base.expect;
 
 module.exports = { test, expect };
+

@@ -12,6 +12,8 @@ const { ROUTES, DASHBOARD } = require('../../../src/helpers/Constants');
 const { RMADashboardPage } = require('../../../src/pages/rma/RMADashboardPage');
 const fs = require('fs');
 const path = require('path');
+const { allure } = require('allure-playwright');
+const Logger = require('../../../src/helpers/Logger');
 
 const SHARED_FILE = path.resolve(__dirname, '..', '..', '..', '.auth', 'kpi-snapshot.json');
 
@@ -25,8 +27,8 @@ async function getKPICount(page, cardTitle) {
 
 async function captureEmployeeKPI(page) {
   await page.goto(ROUTES.rmaDashboard);
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
   return {
     pendingAccept:       await getKPICount(page, DASHBOARD.employee.pendingAccept),
     acceptedNotReceived: await getKPICount(page, DASHBOARD.employee.acceptedNotReceived),
@@ -39,8 +41,8 @@ async function captureEmployeeKPI(page) {
 
 async function captureCustomerKPI(page) {
   await page.goto(ROUTES.rmaDashboard);
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
   return {
     awaitingDevice: await getKPICount(page, DASHBOARD.customer.awaitingDevice),
     inProgress:     await getKPICount(page, DASHBOARD.customer.inProgress),
@@ -65,8 +67,8 @@ function loadSnapshot(roleKey) {
 }
 
 async function _getListRowCount(page) {
-  await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(1000);
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
   const showingText = await page.locator('text=/Showing.*of.*\\d+/i').first().textContent().catch(() => '');
   const totalMatch = showingText.match(/of\s+(\d+)/i);
   if (totalMatch) {return parseInt(totalMatch[1], 10);}
@@ -77,11 +79,20 @@ async function _getListRowCount(page) {
 // ADMIN KPI — Capture counts + click-through
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('KPI Admin Dashboard @dashboard-kpi', () => {
+  // ── Allure labels ──
+  test.beforeEach(async () => {
+    await allure.feature('Dashboard');
+    await allure.story('KPI Workflow Integration');
+  });
+
+
   test.use({ storageState: getStorageStatePath('rmaAdmin') });
 
-  test('KPI-ADM-001 | Admin sees all 6 employee KPI cards', async ({ page }) => {
+  test('KPI-ADM-001 | Admin sees all 6 employee KPI cards @dashboard', async ({ page }) => {
+    Logger.step('KPI-ADM-001 | Admin sees all 6 employee KPI cards');
+
     await page.goto(ROUTES.rmaDashboard);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
         const cards = [
       DASHBOARD.employee.pendingAccept,
@@ -96,12 +107,14 @@ test.describe('KPI Admin Dashboard @dashboard-kpi', () => {
     }
   });
 
-  test('KPI-ADM-002 | Capture Admin KPI counts (shared for cross-role comparison)', async ({ page }) => {
+  test('KPI-ADM-002 | Capture Admin KPI counts (shared for cross-role comparison) @dashboard', async ({ page }) => {
+    Logger.step('KPI-ADM-002 | Capture Admin KPI counts (shared for cross-role comparison)');
+
     const kpi = await captureEmployeeKPI(page);
     saveSnapshot('admin', kpi);
-    console.log('  Admin KPI:', JSON.stringify(kpi));
+    Logger.info('  Admin KPI:', JSON.stringify(kpi));
     for (const k of Object.keys(kpi)) {
-      expect(kpi[k]).toBeGreaterThanOrEqual(0);
+      await expect(kpi[k]).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -115,26 +128,28 @@ test.describe('KPI Admin Dashboard @dashboard-kpi', () => {
   ];
 
   for (const { key, title, color } of empCards) {
-    test(`KPI-ADM-CLICK-${key} | Admin: "${title}" click navigates to filtered list`, async ({ page }) => {
+    test(`KPI-ADM-CLICK-${key} | Admin: "${title}" click navigates to filtered list @dashboard`, async ({ page }) => {
+    Logger.step('KPI-ADM-CLICK-... | Admin: "..." click navigates to filtered list');
+
       await page.goto(ROUTES.rmaDashboard);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       const dashboard = new RMADashboardPage(page);
       const kpiCount = await dashboard.getCardCount(title);
 
       if (kpiCount === 0) {
         await dashboard.expectBubbleColor(title, 'grey');
         const isClickable = await dashboard.expectCardClickable(title);
-        console.log(`  "${title}": count=0, clickable=${isClickable}, color=grey ✓`);
+        Logger.info(`  "${title}": count=0, clickable=${isClickable}, color=grey ✓`);
         expect(true).toBe(true);
       } else {
         await dashboard.expectBubbleColor(title, color);
         await dashboard.clickCard(title);
         // Verify we navigated to the list page
-        expect(page.url()).toMatch(/\/rma\/list/);
+        await expect(page).toHaveURL(/\/rma\/list/);
         // Verify a table with rows is present
         const tableRows = await page.locator('table tbody tr').count();
         expect(tableRows).toBeGreaterThan(0);
-        console.log(`  "${title}": KPI=${kpiCount}, navigated to list with ${tableRows} rows ✓`);
+        Logger.info(`  "${title}": KPI=${kpiCount}, navigated to list with ${tableRows} rows ✓`);
       }
     });
   }
@@ -144,11 +159,14 @@ test.describe('KPI Admin Dashboard @dashboard-kpi', () => {
 // ENGINEER KPI — Capture + click-through
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('KPI Engineer Dashboard @dashboard-kpi', () => {
+
   test.use({ storageState: getStorageStatePath('repairEngineer') });
 
-  test('KPI-ENG-001 | Engineer sees all 6 employee KPI cards', async ({ page }) => {
+  test('KPI-ENG-001 | Engineer sees all 6 employee KPI cards @dashboard', async ({ page }) => {
+    Logger.step('KPI-ENG-001 | Engineer sees all 6 employee KPI cards');
+
     await page.goto(ROUTES.rmaDashboard);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     const cards = [
       DASHBOARD.employee.pendingAccept, DASHBOARD.employee.acceptedNotReceived,
       DASHBOARD.employee.repairInProgress, DASHBOARD.employee.inProgressOver30,
@@ -159,10 +177,12 @@ test.describe('KPI Engineer Dashboard @dashboard-kpi', () => {
     }
   });
 
-  test('KPI-ENG-002 | Capture Engineer KPI counts', async ({ page }) => {
+  test('KPI-ENG-002 | Capture Engineer KPI counts @dashboard', async ({ page }) => {
+    Logger.step('KPI-ENG-002 | Capture Engineer KPI counts');
+
     const kpi = await captureEmployeeKPI(page);
     saveSnapshot('engineer', kpi);
-    console.log('  Engineer KPI:', JSON.stringify(kpi));
+    Logger.info('  Engineer KPI:', JSON.stringify(kpi));
   });
 
     const empCards = [
@@ -175,22 +195,24 @@ test.describe('KPI Engineer Dashboard @dashboard-kpi', () => {
   ];
 
   for (const { key, title, color } of empCards) {
-    test(`KPI-ENG-CLICK-${key} | Engineer: "${title}" click navigates to filtered list`, async ({ page }) => {
+    test(`KPI-ENG-CLICK-${key} | Engineer: "${title}" click navigates to filtered list @dashboard`, async ({ page }) => {
+    Logger.step('KPI-ENG-CLICK-... | Engineer: "..." click navigates to filtered list');
+
       await page.goto(ROUTES.rmaDashboard);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       const dashboard = new RMADashboardPage(page);
       const kpiCount = await dashboard.getCardCount(title);
       if (kpiCount === 0) {
         await dashboard.expectBubbleColor(title, 'grey');
-        console.log(`  "${title}": count=0, color=grey ✓`);
+        Logger.info(`  "${title}": count=0, color=grey ✓`);
         expect(true).toBe(true);
       } else {
         await dashboard.expectBubbleColor(title, color);
         await dashboard.clickCard(title);
-        expect(page.url()).toMatch(/\/rma\/list/);
+        await expect(page).toHaveURL(/\/rma\/list/);
         const tableRows = await page.locator('table tbody tr').count();
         expect(tableRows).toBeGreaterThan(0);
-        console.log(`  "${title}": KPI=${kpiCount}, navigated to list with ${tableRows} rows ✓`);
+        Logger.info(`  "${title}": KPI=${kpiCount}, navigated to list with ${tableRows} rows ✓`);
       }
     });
   }
@@ -200,11 +222,14 @@ test.describe('KPI Engineer Dashboard @dashboard-kpi', () => {
 // WATCHER KPI — Capture + click-through + read-only checks
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('KPI Watcher Dashboard @dashboard-kpi', () => {
+
   test.use({ storageState: getStorageStatePath('repairWatcher') });
 
-  test('KPI-WAT-001 | Watcher sees all 6 employee KPI cards', async ({ page }) => {
+  test('KPI-WAT-001 | Watcher sees all 6 employee KPI cards @dashboard', async ({ page }) => {
+    Logger.step('KPI-WAT-001 | Watcher sees all 6 employee KPI cards');
+
     await page.goto(ROUTES.rmaDashboard);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     // Dashboard sheet: Employee cards = 6 cards (same for Admin, Engineer, Watcher)
     const cards = [
       DASHBOARD.employee.pendingAccept,
@@ -219,21 +244,25 @@ test.describe('KPI Watcher Dashboard @dashboard-kpi', () => {
     }
   });
 
-  test('KPI-WAT-002 | Capture Watcher KPI counts', async ({ page }) => {
+  test('KPI-WAT-002 | Capture Watcher KPI counts @dashboard', async ({ page }) => {
+    Logger.step('KPI-WAT-002 | Capture Watcher KPI counts');
+
     const kpi = await captureEmployeeKPI(page);
     saveSnapshot('watcher', kpi);
-    console.log('  Watcher KPI:', JSON.stringify(kpi));
+    Logger.info('  Watcher KPI:', JSON.stringify(kpi));
   });
 
-  test('KPI-WAT-004 | Watcher card click navigates to list (no write actions)', async ({ page }) => {
+  test('KPI-WAT-004 | Watcher card click navigates to list (no write actions) @dashboard', async ({ page }) => {
+    Logger.step('KPI-WAT-004 | Watcher card click navigates to list (no write actions)');
+
     await page.goto(ROUTES.rmaDashboard);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     const dashboard = new RMADashboardPage(page);
     const kpiCount = await dashboard.getCardCount(DASHBOARD.employee.repairInProgress);
     if (kpiCount > 0) {
       await dashboard.clickCard(DASHBOARD.employee.repairInProgress);
-      expect(page.url()).toMatch(/\/rma/);
-      expect(await page.locator('button:has-text("Accept")').first().isVisible().catch(() => false)).toBe(false);
+      await expect(page).toHaveURL(/\/rma/);
+      await expect(await page.locator('button:has-text("Accept")').first().isVisible().catch(() => false)).toBe(false);
     }
   });
 
@@ -247,22 +276,24 @@ test.describe('KPI Watcher Dashboard @dashboard-kpi', () => {
   ];
 
   for (const { key, title, color } of empCards) {
-    test(`KPI-WAT-CLICK-${key} | Watcher: "${title}" click navigates to filtered list`, async ({ page }) => {
+    test(`KPI-WAT-CLICK-${key} | Watcher: "${title}" click navigates to filtered list @dashboard`, async ({ page }) => {
+    Logger.step('KPI-WAT-CLICK-... | Watcher: "..." click navigates to filtered list');
+
       await page.goto(ROUTES.rmaDashboard);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       const dashboard = new RMADashboardPage(page);
       const kpiCount = await dashboard.getCardCount(title);
       if (kpiCount === 0) {
         await dashboard.expectBubbleColor(title, 'grey');
-        console.log(`  "${title}": count=0, color=grey ✓`);
+        Logger.info(`  "${title}": count=0, color=grey ✓`);
         expect(true).toBe(true);
       } else {
         await dashboard.expectBubbleColor(title, color);
         await dashboard.clickCard(title);
-        expect(page.url()).toMatch(/\/rma\/list/);
+        await expect(page).toHaveURL(/\/rma\/list/);
         const tableRows = await page.locator('table tbody tr').count();
         expect(tableRows).toBeGreaterThan(0);
-        console.log(`  "${title}": KPI=${kpiCount}, navigated to list with ${tableRows} rows ✓`);
+        Logger.info(`  "${title}": KPI=${kpiCount}, navigated to list with ${tableRows} rows ✓`);
       }
     });
   }
@@ -272,28 +303,35 @@ test.describe('KPI Watcher Dashboard @dashboard-kpi', () => {
 // CUSTOMER KPI — 3 customer cards + click-through
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('KPI Customer Dashboard @dashboard-kpi', () => {
+
   test.use({ storageState: getStorageStatePath('customerOne') });
 
-  test('KPI-CUST-001 | Customer sees 3 customer KPI cards', async ({ page }) => {
+  test('KPI-CUST-001 | Customer sees 3 customer KPI cards @dashboard', async ({ page }) => {
+    Logger.step('KPI-CUST-001 | Customer sees 3 customer KPI cards');
+
     await page.goto(ROUTES.rmaDashboard);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     for (const c of ['Awaiting Device', 'In Progress', 'Repaired']) {
       await expect(page.locator(`text=/${c}/i`).first()).toBeVisible({ timeout: 10_000 });
     }
   });
 
-  test('KPI-CUST-002 | Customer does NOT see employee-only cards', async ({ page }) => {
+  test('KPI-CUST-002 | Customer does NOT see employee-only cards @dashboard', async ({ page }) => {
+    Logger.step('KPI-CUST-002 | Customer does NOT see employee-only cards');
+
     await page.goto(ROUTES.rmaDashboard);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     for (const c of ['Pending Accept', 'Accepted & Not Received', 'Repaired But Not Closed']) {
-      expect(await page.locator(`text=/${c}/i`).first().isVisible().catch(() => false)).toBe(false);
+      await expect(await page.locator(`text=/${c}/i`).first().isVisible().catch(() => false)).toBe(false);
     }
   });
 
-  test('KPI-CUST-003 | Customer KPI counts ≥ 0', async ({ page }) => {
+  test('KPI-CUST-003 | Customer KPI counts ≥ 0 @dashboard', async ({ page }) => {
+    Logger.step('KPI-CUST-003 | Customer KPI counts ≥ 0');
+
     const kpi = await captureCustomerKPI(page);
     saveSnapshot('customer', kpi);
-    console.log('  Customer KPI:', JSON.stringify(kpi));
+    Logger.info('  Customer KPI:', JSON.stringify(kpi));
     expect(kpi.awaitingDevice).toBeGreaterThanOrEqual(0);
     expect(kpi.inProgress).toBeGreaterThanOrEqual(0);
     expect(kpi.repaired).toBeGreaterThanOrEqual(0);
@@ -306,22 +344,24 @@ test.describe('KPI Customer Dashboard @dashboard-kpi', () => {
   ];
 
   for (const { key, title, color } of custCards) {
-    test(`KPI-CUST-CLICK-${key} | Customer: "${title}" click navigates to filtered list`, async ({ page }) => {
+    test(`KPI-CUST-CLICK-${key} | Customer: "${title}" click navigates to filtered list @dashboard`, async ({ page }) => {
+    Logger.step('KPI-CUST-CLICK-... | Customer: "..." click navigates to filtered list');
+
       await page.goto(ROUTES.rmaDashboard);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       const dashboard = new RMADashboardPage(page);
       const kpiCount = await dashboard.getCardCount(title);
       if (kpiCount === 0) {
         await dashboard.expectBubbleColor(title, 'grey');
-        console.log(`  "${title}": count=0, color=grey ✓`);
+        Logger.info(`  "${title}": count=0, color=grey ✓`);
         expect(true).toBe(true);
       } else {
         await dashboard.expectBubbleColor(title, color);
         await dashboard.clickCard(title);
-        expect(page.url()).toMatch(/\/rma\/list/);
+        await expect(page).toHaveURL(/\/rma\/list/);
         const tableRows = await page.locator('table tbody tr').count();
         expect(tableRows).toBeGreaterThan(0);
-        console.log(`  "${title}": KPI=${kpiCount}, navigated to list with ${tableRows} rows ✓`);
+        Logger.info(`  "${title}": KPI=${kpiCount}, navigated to list with ${tableRows} rows ✓`);
       }
     });
   }
@@ -332,9 +372,12 @@ test.describe('KPI Customer Dashboard @dashboard-kpi', () => {
 // Must run AFTER the Admin, Engineer, Watcher describe blocks
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('KPI Cross-Role Consistency @dashboard-kpi', () => {
+
   test.use({ storageState: getStorageStatePath('rmaAdmin') });
 
-  test('KPI-XROLE-001 | Admin, Engineer, Watcher see identical KPI counts', async () => {
+  test('KPI-XROLE-001 | Admin, Engineer, Watcher see identical KPI counts @dashboard', async () => {
+    Logger.step('KPI-XROLE-001 | Admin, Engineer, Watcher see identical KPI counts');
+
     const admin = loadSnapshot('admin');
     const engineer = loadSnapshot('engineer');
     const watcher = loadSnapshot('watcher');
@@ -344,15 +387,15 @@ test.describe('KPI Cross-Role Consistency @dashboard-kpi', () => {
       return;
     }
 
-    console.log('  Admin:    ', JSON.stringify(admin));
-    console.log('  Engineer: ', JSON.stringify(engineer));
-    console.log('  Watcher:  ', JSON.stringify(watcher));
+    Logger.info('  Admin:    ', JSON.stringify(admin));
+    Logger.info('  Engineer: ', JSON.stringify(engineer));
+    Logger.info('  Watcher:  ', JSON.stringify(watcher));
 
     for (const k of Object.keys(admin)) {
-      expect(engineer[k], `Engineer "${k}" should match Admin`).toBe(admin[k]);
-      expect(watcher[k],  `Watcher "${k}" should match Admin`).toBe(admin[k]);
+      await expect(engineer[k], `Engineer "${k}" should match Admin`).toBe(admin[k]);
+      await expect(watcher[k],  `Watcher "${k}" should match Admin`).toBe(admin[k]);
     }
-    console.log('  ✓ All 3 employee roles show identical KPI counts');
+    Logger.info('  ✓ All 3 employee roles show identical KPI counts');
   });
 
   });

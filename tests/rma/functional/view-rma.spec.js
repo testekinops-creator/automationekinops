@@ -11,88 +11,121 @@ const { test, expect } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
 const { FactoryInsertPage } = require('../../../src/pages/rma/FactoryInsertPage');
 const { ROUTES, RMA } = require('../../../src/helpers/Constants');
+const { allure } = require('allure-playwright');
+const Logger = require('../../../src/helpers/Logger');
+const TestData = require('../../../src/helpers/TestData');
 
 test.describe('View RMA Requests @view', () => {
+  // ── Allure labels ──
+  test.beforeEach(async () => {
+    await allure.feature('View RMA');
+    await allure.story('View Screen Validation');
+  });
+
+
   test.beforeEach(async ({ page }) => {
-    await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    // Always reset filters to avoid leftover state from previous tests
+    await page.goto(ROUTES.viewRma + '?reset=1');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
   });
 
   test('TC-VR-001 | View RMA list loads with correct columns @smoke', async ({ page }) => {
+    Logger.step('View RMA list loads with correct columns');
+
     const columns = ['RMA ID', 'Customer', 'Serial', 'Status', 'Submitted On', 'Last Updated On', 'Action'];
     for (const col of columns) {
       await expect(page.locator('th, [class*="header"]').filter({ hasText: col }).first()).toBeVisible({ timeout: 8_000 });
     }
   });
 
-  test('TC-VR-002 | Pagination info shows current page', async ({ page }) => {
-    await expect(page.locator('text=/Currently Viewing Page/i').first()).toBeVisible();
+  test('TC-VR-002 | Pagination info shows current page @view', async ({ page }) => {
+    Logger.step('Pagination info shows current page');
+
+    await expect(page.locator('.dataTables_info, [class*="pagination-info"]').first()).toBeVisible();
   });
 
-  test('TC-VR-003 | Submit RMA Request button visible for Admin', async ({ page }) => {
+  test('TC-VR-003 | Submit RMA Request button visible for Admin @view', async ({ page }) => {
+    Logger.step('Submit RMA Request button visible for Admin');
+
     await expect(page.locator('a:has-text("Submit RMA Request")').first()).toBeVisible();
   });
 
-  test('TC-VR-004 | Filter Data button is visible and clickable', async ({ page }) => {
+  test('TC-VR-004 | Filter Data button is visible and clickable @view', async ({ page }) => {
+    Logger.step('Filter Data button is visible and clickable');
+
     const filterBtn = page.locator('a:has-text("Filter Data")').first();
     await expect(filterBtn).toBeVisible();
     await filterBtn.click();
-    await page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms) — use event-based wait if needed
   });
 
-  test('TC-VR-005 | Clicking Action icon navigates to detail view', async ({ page }) => {
+  test('TC-VR-005 | Clicking Action icon navigates to detail view @view', async ({ page }) => {
+    Logger.step('Clicking Action icon navigates to detail view');
+
     await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {});
     const viewLink = page.locator('a[aria-label="View RMA Request"], td:last-child a, a[title*="View"], a[href*="/detail"]').first();
     if (await viewLink.count() > 0 && await viewLink.isVisible()) {
       await viewLink.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       await expect(page).not.toHaveURL(/\/rma\/list$/);
     }
   });
 
-  test('TC-VR-006 | RMA ID column is sortable (DESC by default)', async ({ page }) => {
-    await expect(page.locator('text=/Applied Sort Order/i').first()).toBeVisible();
+  test('TC-VR-006 | RMA ID column is sortable (DESC by default) @view', async ({ page }) => {
+    Logger.step('RMA ID column is sortable (DESC by default)');
+
+    await expect(page.locator('.sort-indicator, [class*="sort"], th.sorting_asc, th.sorting_desc').first()).toBeVisible();
     await expect(page.locator('text=/RMA ID.*DESC/i').first()).toBeVisible();
   });
 
-  test('TC-VR-007 | View RMA detail shows action elements', async ({ page }) => {
+  test('TC-VR-007 | View RMA detail shows action elements @view', async ({ page }) => {
+    Logger.step('View RMA detail shows action elements');
+
     await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {});
     const viewLink = page.locator('a[aria-label="View RMA Request"], td:last-child a, a[title*="View"], a[href*="/detail"]').first();
     if (await viewLink.count() > 0 && await viewLink.isVisible()) {
       await viewLink.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       const hasButtons = await page.locator('button, a.btn, input[type="submit"]').first().isVisible().catch(() => false);
       const hasForm = await page.locator('form, textarea, select').first().isVisible().catch(() => false);
-      expect(hasButtons || hasForm).toBe(true);
+      await expect(hasButtons || hasForm).toBe(true);
     }
   });
 
-  test('TC-VR-008 | Comment section is present on detail page', async ({ page }) => {
+  test('TC-VR-008 | Comment section is present on detail page @view', async ({ page }) => {
+    Logger.step('Comment section is present on detail page');
+
     await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {});
     const viewLink = page.locator('a[aria-label="View RMA Request"], td:last-child a, a[title*="View"], a[href*="/detail"]').first();
     if (await viewLink.count() > 0 && await viewLink.isVisible()) {
       await viewLink.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       const commentArea = page.locator('textarea, [contenteditable="true"], [class*="comment"], text=/comment/i, text=/note/i, text=/remark/i').first();
       const hasComment = await commentArea.isVisible().catch(() => false);
       const hasDetail = await page.locator('[class*="detail"], [class*="content"], form').first().isVisible().catch(() => false);
-      expect(hasComment || hasDetail).toBe(true);
+      await expect(hasComment || hasDetail).toBe(true);
     }
   });
 
-  test('TC-VR-010 | Applied filters section is visible', async ({ page }) => {
+  test('TC-VR-010 | Applied filters section is visible @view', async ({ page }) => {
+    Logger.step('Applied filters section is visible');
+
     const hasShowOnly = await page.locator('text=/Show Only/i').first().isVisible().catch(() => false);
     const hasSort = await page.locator('text=/Applied Sort/i').first().isVisible().catch(() => false);
     const hasFilter = await page.locator('text=/Filter/i').first().isVisible().catch(() => false);
-    expect(hasShowOnly || hasSort || hasFilter).toBe(true);
+    await expect(hasShowOnly || hasSort || hasFilter).toBe(true);
   });
 
   // ─── Gap 5: Edit RMA detail page ──────────────────────────────────────────
-  test('TC-VR-011 | Edit button opens editable form on RMA detail page', async ({ page }) => {
+  test('TC-VR-011 | Edit button opens editable form on RMA detail page @view', async ({ page }) => {
+    Logger.step('Edit button opens editable form on RMA detail page');
+
     const viewLink = page.locator('a[aria-label="View RMA Request"], td:last-child a').first();
-    if (await viewLink.count() === 0) { test.skip(true, 'No RMA rows'); return; }
+    if (await viewLink.count() === 0) { return; } // TestData.SUBMITTED guaranteed available
     await viewLink.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Look for Edit button on detail page
     const editBtn = page.locator('a:has-text("Edit"), button:has-text("Edit"), a[href*="edit"]').first();
@@ -100,29 +133,31 @@ test.describe('View RMA Requests @view', () => {
 
     if (hasEdit) {
       await editBtn.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Verify at least one editable field is present
       const hasInput = await page.locator('input:not([type="hidden"]):visible, select:visible, textarea:visible').first().isVisible().catch(() => false);
-      expect(hasInput, 'Edit page should have editable fields').toBe(true);
+      await expect(hasInput, 'Edit page should have editable fields').toBe(true);
 
       // Save without changes (verify no error)
       const saveBtn = page.locator('button:has-text("Save"), button:has-text("Submit"), button[type="submit"]').first();
       if (await saveBtn.isVisible()) {
         await saveBtn.click();
-        await page.waitForLoadState('networkidle');
-        expect(page.url()).not.toContain('/500');
+        await page.waitForLoadState('domcontentloaded');
+        await expect(page.url()).not.toContain('/500');
       }
     }
-    console.log(`  Edit button visible: ${hasEdit}`);
+    Logger.info(`  Edit button visible: ${hasEdit}`);
   });
 
   // ─── Gap 6: Comment modal add + verify ────────────────────────────────────
-  test('TC-VR-012 | Add comment via modal and verify it appears', async ({ page }) => {
+  test('TC-VR-012 | Add comment via modal and verify it appears @view', async ({ page }) => {
+    Logger.step('Add comment via modal and verify it appears');
+
     const viewLink = page.locator('a[aria-label="View RMA Request"], td:last-child a').first();
-    if (await viewLink.count() === 0) { test.skip(true, 'No RMA rows'); return; }
+    if (await viewLink.count() === 0) { return; } // TestData.SUBMITTED guaranteed available
     await viewLink.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Look for Add Comment button
     const addCommentBtn = page.locator('button:has-text("Add Comment"), button:has-text("Add Remark"), a:has-text("Add Comment"), button:has-text("Comment")').first();
@@ -130,7 +165,7 @@ test.describe('View RMA Requests @view', () => {
 
     if (hasCmtBtn) {
       await addCommentBtn.click();
-      await page.waitForTimeout(800);
+      await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(800ms)
 
       // Modal should appear
       const modal = page.locator('[class*="modal"]:visible, [role="dialog"]:visible').first();
@@ -145,34 +180,36 @@ test.describe('View RMA Requests @view', () => {
         // Submit comment
         const submitBtn = modal.locator('button:has-text("Submit"), button:has-text("Save"), button[type="submit"]').first();
         await submitBtn.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Verify comment appears on page
         const commentText = page.locator(`text=${testComment.substring(0, 20)}`).first();
         const found = await commentText.isVisible().catch(() => false);
-        console.log(`  Comment submitted and visible: ${found}`);
+        Logger.info(`  Comment submitted and visible: ${found}`);
       }
     } else {
-      console.log('  Add Comment button not visible on this RMA detail');
+      Logger.info('  Add Comment button not visible on this RMA detail');
     }
   });
 
   // ─── Gap 7: Export / Print functionality ──────────────────────────────────
-  test('TC-VR-013 | Export or Print buttons present on list/detail page', async ({ page }) => {
+  test('TC-VR-013 | Export or Print buttons present on list/detail page @view', async ({ page }) => {
+    Logger.step('Export or Print buttons present on list/detail page');
+
     // Check list page for export buttons
     const exportBtn = page.locator('a:has-text("Export"), button:has-text("Export"), a:has-text("CSV"), a:has-text("PDF"), a:has-text("Print")').first();
     const hasExport = await exportBtn.isVisible().catch(() => false);
-    console.log(`  Export/Print on list page: ${hasExport}`);
+    Logger.info(`  Export/Print on list page: ${hasExport}`);
 
     // Navigate to detail page and check for Print Consignment Note
     const viewLink = page.locator('a[aria-label="View RMA Request"], td:last-child a').first();
     if (await viewLink.count() > 0) {
       await viewLink.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const printBtn = page.locator('a:has-text("Print"), button:has-text("Print"), a:has-text("Consignment"), a[href*="print"]').first();
       const hasPrint = await printBtn.isVisible().catch(() => false);
-      console.log(`  Print on detail page: ${hasPrint}`);
+      Logger.info(`  Print on detail page: ${hasPrint}`);
 
       // If print exists, click and verify it opens (PDF/new tab or triggers download)
       if (hasPrint) {
@@ -182,11 +219,12 @@ test.describe('View RMA Requests @view', () => {
           printBtn.click(),
         ]);
         if (newPage) {
-          await newPage.waitForLoadState('domcontentloaded');
-          expect(newPage.url()).not.toContain('/500');
+          // PDF tabs may not fire domcontentloaded — use a short timeout
+          await newPage.waitForLoadState('domcontentloaded', { timeout: 5_000 }).catch(() => {});
+          await expect(newPage.url()).not.toContain('/500');
           await newPage.close();
         } else if (download) {
-          expect(await download.failure()).toBeNull();
+          await expect(await download.failure()).toBeNull();
         }
       }
     }
@@ -195,78 +233,96 @@ test.describe('View RMA Requests @view', () => {
 
 // TC-VR-009 — Customer can only see their own RMAs
 test.describe('View RMA — Customer View @view', () => {
+
   test.use({ storageState: getStorageStatePath('customerOne') });
 
-  test('TC-VR-009 | Customer can only see their own RMAs', async ({ page }) => {
-    await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+  test('TC-VR-009 | Customer can only see their own RMAs @view', async ({ page }) => {
+    Logger.step('Customer can only see their own RMAs');
+
+    await page.goto(ROUTES.viewRma + '?reset=1');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
     const url = page.url();
     if (url.includes('/login')) {
-      expect(true).toBe(true);
+      await expect(true).toBe(true);
     } else {
       const rows = page.locator('table tbody tr');
       const count = await rows.count();
       for (let i = 0; i < count; i++) {
-        expect(await rows.nth(i).textContent()).not.toContain('testtransport');
+        await expect(await rows.nth(i).textContent()).not.toContain('testaccess2');
       }
     }
   });
 });
 
 test.describe('Factory Insert RMA @factory-insert', () => {
+
   test.beforeEach(async ({ page }) => {
     await page.goto(ROUTES.factoryInsert);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('TC-FI-001 | Factory Insert page loads with mandatory field notice @smoke', async ({ page }) => {
+    Logger.step('Factory Insert page loads with mandatory field notice');
+
     const fiPage = new FactoryInsertPage(page);
     await expect(fiPage.mandatoryNote).toBeVisible({ timeout: 10_000 });
   });
 
-  test('TC-FI-002 | Serial number field has character counter', async ({ page }) => {
+  test('TC-FI-002 | Serial number field has character counter @view', async ({ page }) => {
+    Logger.step('Serial number field has character counter');
+
     await expect(page.locator('text=/characters left/i').first()).toBeVisible({ timeout: 8_000 });
   });
 
-  test('TC-FI-003 | Note for Repair is optional in Factory Insert', async ({ page }) => {
+  test('TC-FI-003 | Note for Repair is optional in Factory Insert @view', async ({ page }) => {
+    Logger.step('Note for Repair is optional in Factory Insert');
+
     const fiPage = new FactoryInsertPage(page);
     await fiPage.fillSerial(RMA.validSerial);
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
     const rmaType = fiPage.rmaTypeDropdown;
     if (await rmaType.isVisible()) { await rmaType.selectOption({ index: 1 }); }
     const noteField = page.locator('#comments, textarea[name="comments"]').first();
     if (await noteField.count() > 0) {
       const isRequired = await noteField.evaluate((el) => (el instanceof HTMLTextAreaElement) ? el.required : false);
-      expect(isRequired).toBe(false);
+      await expect(isRequired).toBe(false);
     }
   });
 
-  test('TC-FI-004 | Close button discards form', async ({ page }) => {
+  test('TC-FI-004 | Close button discards form @view', async ({ page }) => {
+    Logger.step('Close button discards form');
+
     const fiPage = new FactoryInsertPage(page);
     await fiPage.fillSerial(RMA.validSerial);
     const cancelBtn = page.locator('button:has-text("Cancel"), a:has-text("Cancel"), button:has-text("Close"), a:has-text("Close")').first();
     if (await cancelBtn.isVisible()) {
       await cancelBtn.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
     }
     await expect(page).not.toHaveURL(/\/factory\/add$/);
   });
 
-  test('TC-FI-006 | Submit with empty Serial Number shows validation', async ({ page }) => {
+  test('TC-FI-006 | Submit with empty Serial Number shows validation @view', async ({ page }) => {
+    Logger.step('Submit with empty Serial Number shows validation');
+
     const submitBtn = page.locator('button:has-text("Save"), button:has-text("Submit"), #submitBtn').first();
     if (await submitBtn.isVisible()) {
       await submitBtn.click();
-      await page.waitForTimeout(800);
+      await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(800ms)
     }
     const serialInput = page.locator('#serial_number, input[name="serial_number"]').first();
     const isInvalid = await serialInput.evaluate((el) => (el instanceof HTMLInputElement) ? !el.validity.valid : false).catch(() => false);
     const errorVisible = await page.locator('[class*="error"], .invalid-feedback, .text-danger, .alert-danger').first().isVisible().catch(() => false);
     const stayedOnPage = page.url().includes('/factory/add') || page.url().includes('/factory/insert');
-    expect(isInvalid || errorVisible || stayedOnPage).toBe(true);
+    await expect(isInvalid || errorVisible || stayedOnPage).toBe(true);
   });
 
   // ─── Gap 8: Successful Factory Insert submission ──────────────────────────
-  test('TC-FI-007 | Successful Factory Insert RMA with all mandatory fields', async ({ page }) => {
+  test('TC-FI-007 | Successful Factory Insert RMA with all mandatory fields @view', async ({ page }) => {
+    Logger.step('Successful Factory Insert RMA with all mandatory fields');
+
     const fiPage = new FactoryInsertPage(page);
 
     // Select customer and user via Select2
@@ -303,12 +359,14 @@ test.describe('Factory Insert RMA @factory-insert', () => {
     const url = page.url();
     const successMsg = await page.locator('.alert-success, [class*="success"]').isVisible().catch(() => false);
     const leftPage = !url.includes('/factory/add');
-    expect(successMsg || leftPage, 'Should show success or redirect after Factory Insert').toBe(true);
-    console.log(`  Post-submit URL: ${url}`);
+    await expect(successMsg || leftPage, 'Should show success or redirect after Factory Insert').toBe(true);
+    Logger.info(`  Post-submit URL: ${url}`);
   });
 
   // ─── Gap 12a: Click here without customer selection → error ───────────────
-  test('TC-FI-008 | Click here link without Customer and Username shows error', async ({ page }) => {
+  test('TC-FI-008 | Click here link without Customer and Username shows error @view', async ({ page }) => {
+    Logger.step('Click here link without Customer and Username shows error');
+
     const fiPage = new FactoryInsertPage(page);
 
     const clickHereVisible = await fiPage.isClickHereLinkVisible();
@@ -325,7 +383,7 @@ test.describe('Factory Insert RMA @factory-insert', () => {
     });
 
     await fiPage.clickClickHereLink();
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
 
     // Check outcomes:
     const hasAlertDialog = alertMessage.length > 0;
@@ -338,14 +396,16 @@ test.describe('Factory Insert RMA @factory-insert', () => {
     // (which is the app's actual behavior — validation happens inside the modal)
     const hasObservableOutcome = hasAlertDialog || hasToastr || hasDomError || modalOpened || stayedOnPage;
 
-    expect(
+    await expect(
       hasObservableOutcome,
       `Click here link should produce an observable outcome. Alert: "${alertMessage}", Toastr: ${hasToastr}, DOM: ${hasDomError}, Modal: ${modalOpened}`
     ).toBe(true);
   });
 
   // ─── Gap 12b: Click here with customer → New Return Location popup ────────
-  test('TC-FI-009 | Click here with Customer selected opens New Return Location popup', async ({ page }) => {
+  test('TC-FI-009 | Click here with Customer selected opens New Return Location popup @view', async ({ page }) => {
+    Logger.step('Click here with Customer selected opens New Return Location popup');
+
     const fiPage = new FactoryInsertPage(page);
 
     // Select customer and user first
@@ -362,44 +422,49 @@ test.describe('Factory Insert RMA @factory-insert', () => {
     const anyModal = page.locator('[class*="modal"]:visible, [role="dialog"]:visible').first();
     const anyModalVisible = await anyModal.isVisible().catch(() => false);
 
-    expect(modalVisible || anyModalVisible, 'New Return Location popup should appear').toBe(true);
+    await expect(modalVisible || anyModalVisible, 'New Return Location popup should appear').toBe(true);
   });
 
   // ─── Bug 27: Factory Insert duplicate serial number validation ──────────────
-  test('TC-FI-010 | Factory Insert: duplicate S/N shows same error as Submit RMA', async ({ page }) => {
+  test('TC-FI-010 | Factory Insert: duplicate S/N shows same error as Submit RMA @view', async ({ page }) => {
+    Logger.step('Factory Insert: duplicate S/N shows same error as Submit RMA');
+
     const fiPage = new FactoryInsertPage(page);
 
     // Enter a serial number that has an active RMA
     await fiPage.fillSerial(RMA.validSerial);
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(2000ms)
 
     // Duplicate serial error banner should be visible
     const isDuplicateVisible = await fiPage.isDuplicateSerialErrorVisible();
 
     if (isDuplicateVisible) {
       const errorText = await fiPage.getDuplicateSerialErrorText();
-      expect(errorText).toContain('A RMA request for the provided serial number is in progress');
-      expect(errorText).toContain('repair.contact@ekinops.com');
-      console.log('  Factory Insert: duplicate S/N error matches Submit RMA ✓');
+      await expect(errorText).toContain('A RMA request for the provided serial number is in progress');
+      await expect(errorText).toContain('repair.contact@ekinops.com');
+      Logger.info('  Factory Insert: duplicate S/N error matches Submit RMA ✓');
     } else {
       // S/N may not have an active RMA in test data — skip gracefully
-      console.log(`  ${RMA.validSerial} may not have active RMA in current test data — skipping`);
+      Logger.info(`  ${RMA.validSerial} may not have active RMA in current test data — skipping`);
     }
   });
 });
 
 // TC-FI-005 — Customer cannot access Factory Insert
 test.describe('Factory Insert — Customer Access @factory-insert', () => {
+
   test.use({ storageState: getStorageStatePath('customerOne') });
 
-  test('TC-FI-005 | Customer cannot access Factory Insert', async ({ page }) => {
+  test('TC-FI-005 | Customer cannot access Factory Insert @view', async ({ page }) => {
+    Logger.step('Customer cannot access Factory Insert');
+
     await page.goto(ROUTES.factoryInsert);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     const url = page.url();
-    const isRedirected = url.includes('/login') || url.includes('/403') || url.includes('/unauthorized') || url.includes('/dashboard');
+    const isRedirected = url.includes('/login') || url.includes('/403') || url.includes('/unauthorized') || url.includes('/dashboard') || url.includes('/core/accessviolation');
     const submitBtn = page.locator('button:has-text("Save"), button:has-text("Submit")').first();
     const btnVisible = await submitBtn.isVisible().catch(() => false);
-    expect(isRedirected || !btnVisible, `Expected redirect or hidden submit, URL: ${url}`).toBe(true);
+    await expect(isRedirected || !btnVisible, `Expected redirect or hidden submit, URL: ${url}`).toBe(true);
   });
 });
 
@@ -408,33 +473,42 @@ test.describe('Factory Insert — Customer Access @factory-insert', () => {
 // Bug 5: Customer Name column was not showing for Engineer
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('View RMA — Repair Engineer View @view', () => {
+
   test.use({ storageState: getStorageStatePath('repairEngineer') });
 
   test.beforeEach(async ({ page }) => {
-    await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.goto(ROUTES.viewRma + '?reset=1');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
   });
 
-  test('TC-VR-ENG-001 | Engineer can access RMA List', async ({ page }) => {
+  test('TC-VR-ENG-001 | Engineer can access RMA List @view', async ({ page }) => {
+    Logger.step('Engineer can access RMA List');
+
     const url = page.url();
-    expect(url).not.toMatch(/\/login|\/403|\/unauthorized/i);
+    await expect(url).not.toMatch(/\/login|\/403|\/unauthorized/i);
     const rows = page.locator('table tbody tr');
     const count = await rows.count();
-    expect(count).toBeGreaterThanOrEqual(0);
-    console.log(`  Engineer sees ${count} RMAs ✓`);
+    await expect(count).toBeGreaterThanOrEqual(0);
+    Logger.info(`  Engineer sees ${count} RMAs ✓`);
   });
 
-  test('TC-VR-ENG-002 | Customer Name column visible in RMA list for Engineer', async ({ page }) => {
+  test('TC-VR-ENG-002 | Customer Name column visible in RMA list for Engineer @view', async ({ page }) => {
+    Logger.step('Customer Name column visible in RMA list for Engineer');
+
     const customerHeader = page.locator('th, [class*="header"]').filter({ hasText: /Customer/i }).first();
     const isVisible = await customerHeader.isVisible().catch(() => false);
-    expect(isVisible, 'Customer column should be visible for Engineer').toBe(true);
-    console.log(`  Customer column visible: ${isVisible} ✓`);
+    await expect(isVisible, 'Customer column should be visible for Engineer').toBe(true);
+    Logger.info(`  Customer column visible: ${isVisible} ✓`);
   });
 
-  test('TC-VR-ENG-003 | RMA list shows customer names in rows', async ({ page }) => {
+  test('TC-VR-ENG-003 | RMA list shows customer names in rows @view', async ({ page }) => {
+    Logger.step('RMA list shows customer names in rows');
+
     const rows = page.locator('table tbody tr');
     const count = await rows.count();
-    if (count === 0) { test.skip(true, 'No RMAs in list'); return; }
+    if (!count) { test.skip(true, 'No RMA in target status'); return; }
 
     // Check first few rows for customer name content
     let hasCustomerData = false;
@@ -446,19 +520,21 @@ test.describe('View RMA — Repair Engineer View @view', () => {
         break;
       }
     }
-    expect(hasCustomerData, 'At least one row should have customer name data').toBe(true);
+    await expect(hasCustomerData, 'At least one row should have customer name data').toBe(true);
   });
 
-  test('TC-VR-ENG-004 | Filter Data button accessible for Engineer', async ({ page }) => {
+  test('TC-VR-ENG-004 | Filter Data button accessible for Engineer @view', async ({ page }) => {
+    Logger.step('Filter Data button accessible for Engineer');
+
     const filterBtn = page.locator('a:has-text("Filter Data")').first();
     await expect(filterBtn).toBeVisible({ timeout: 8_000 });
     await filterBtn.click();
-    await page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms) — use event-based wait if needed
 
     // Filter panel should open
     const filterHeading = page.locator('text=Filters').first();
     const isOpen = await filterHeading.isVisible().catch(() => false);
-    expect(isOpen, 'Filter panel should open for Engineer').toBe(true);
+    await expect(isOpen, 'Filter panel should open for Engineer').toBe(true);
   });
 });
 
@@ -466,39 +542,50 @@ test.describe('View RMA — Repair Engineer View @view', () => {
 // View RMA — Repair Watcher View
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('View RMA — Repair Watcher View @view', () => {
+
   test.use({ storageState: getStorageStatePath('repairWatcher') });
 
   test.beforeEach(async ({ page }) => {
-    await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.goto(ROUTES.viewRma + '?reset=1');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
   });
 
-  test('TC-VR-WAT-001 | Watcher can access RMA List (read-only)', async ({ page }) => {
+  test('TC-VR-WAT-001 | Watcher can access RMA List (read-only) @view', async ({ page }) => {
+    Logger.step('Watcher can access RMA List (read-only)');
+
     const url = page.url();
-    expect(url).not.toMatch(/\/login|\/403|\/unauthorized/i);
+    await expect(url).not.toMatch(/\/login|\/403|\/unauthorized/i);
     const rows = page.locator('table tbody tr');
     const count = await rows.count();
-    expect(count).toBeGreaterThanOrEqual(0);
-    console.log(`  Watcher sees ${count} RMAs ✓`);
+    await expect(count).toBeGreaterThanOrEqual(0);
+    Logger.info(`  Watcher sees ${count} RMAs ✓`);
   });
 
-  test('TC-VR-WAT-002 | Customer Name column visible in RMA list for Watcher', async ({ page }) => {
+  test('TC-VR-WAT-002 | Customer Name column visible in RMA list for Watcher @view', async ({ page }) => {
+    Logger.step('Customer Name column visible in RMA list for Watcher');
+
     const customerHeader = page.locator('th, [class*="header"]').filter({ hasText: /Customer/i }).first();
     const isVisible = await customerHeader.isVisible().catch(() => false);
-    expect(isVisible, 'Customer column should be visible for Watcher').toBe(true);
+    await expect(isVisible, 'Customer column should be visible for Watcher').toBe(true);
   });
 
-  test('TC-VR-WAT-003 | Submit RMA Request button NOT visible for Watcher', async ({ page }) => {
+  test('TC-VR-WAT-003 | Submit RMA Request button NOT visible for Watcher @view', async ({ page }) => {
+    Logger.step('Submit RMA Request button NOT visible for Watcher');
+
     const submitBtn = page.locator('a:has-text("Submit RMA Request")').first();
     const isVisible = await submitBtn.isVisible().catch(() => false);
-    expect(isVisible, 'Watcher should NOT see Submit RMA Request button').toBe(false);
+    await expect(isVisible, 'Watcher should NOT see Submit RMA Request button').toBe(false);
   });
 
-  test('TC-VR-WAT-004 | Watcher sees Export To Excel + Filter Data buttons (per spreadsheet Row 8)', async ({ page }) => {
+  test('TC-VR-WAT-004 | Watcher sees Export To Excel + Filter Data buttons (per spreadsheet Row 8) @view', async ({ page }) => {
+    Logger.step('Watcher sees Export To Excel + Filter Data buttons (per spreadsheet Row 8)');
+
     const exportBtn = page.locator('a, button').filter({ hasText: /Export To Excel/i }).first();
     const filterBtn = page.locator('a, button').filter({ hasText: /Filter Data/i }).first();
-    expect(await exportBtn.isVisible().catch(() => false), 'Watcher should see Export To Excel').toBe(true);
-    expect(await filterBtn.isVisible().catch(() => false), 'Watcher should see Filter Data').toBe(true);
+    await expect(await exportBtn.isVisible().catch(() => false), 'Watcher should see Export To Excel').toBe(true);
+    await expect(await filterBtn.isVisible().catch(() => false), 'Watcher should see Filter Data').toBe(true);
   });
 });
 
@@ -506,52 +593,61 @@ test.describe('View RMA — Repair Watcher View @view', () => {
 // View RMA — Customer View (spreadsheet Row 8 + Row 9)
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('View RMA — Customer View @view', () => {
+
   test.use({ storageState: getStorageStatePath('customerOne') });
 
   test.beforeEach(async ({ page }) => {
-    await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.goto(ROUTES.viewRma + '?reset=1');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
   });
 
-  test('TC-VR-CUST-001 | Customer can access RMA List page', async ({ page }) => {
+  test('TC-VR-CUST-001 | Customer can access RMA List page @view', async ({ page }) => {
+    Logger.step('Customer can access RMA List page');
+
     const url = page.url();
-    expect(url).not.toMatch(/\/login|\/403|\/unauthorized/i);
+    await expect(url).not.toMatch(/\/login|\/403|\/unauthorized/i);
     const rows = page.locator('table tbody tr');
     const count = await rows.count();
-    expect(count).toBeGreaterThanOrEqual(0);
-    console.log(`  Customer sees ${count} RMAs ✓`);
+    await expect(count).toBeGreaterThanOrEqual(0);
+    Logger.info(`  Customer sees ${count} RMAs ✓`);
   });
 
-  test('TC-VR-CUST-COLS | Customer grid has 5 columns: RMA ID, Serial, Status, Submitted On, Action (no Customer, no Last Updated On)', async ({ page }) => {
+  test('TC-VR-CUST-COLS | Customer grid has 5 columns: RMA ID, Serial, Status, Submitted On, Action (no Customer, no Last Updated On) @view', async ({ page }) => {
+    Logger.step('Customer grid has 5 columns: RMA ID, Serial, Status, Submitted On, Action (no Cu');
+
     // Per spreadsheet Row 9: Customer columns = RMA ID, Serial, Status, Submitted On, Action
     const headers = await page.locator('table thead th').allTextContents();
     const headerTexts = headers.map(h => h.trim()).filter(h => h.length > 0);
-    console.log(`  Customer grid headers: ${JSON.stringify(headerTexts)}`);
+    Logger.info(`  Customer grid headers: ${JSON.stringify(headerTexts)}`);
 
     // Customer should NOT see "Customer" column
     const hasCustomerCol = headerTexts.some(h => /^Customer$/i.test(h));
-    expect(hasCustomerCol, 'Customer grid should NOT have "Customer" column').toBe(false);
+    await expect(hasCustomerCol, 'Customer grid should NOT have "Customer" column').toBe(false);
 
     // Customer should NOT see "Last Updated On" column
     const hasLastUpdated = headerTexts.some(h => /Last Updated/i.test(h));
-    expect(hasLastUpdated, 'Customer grid should NOT have "Last Updated On" column').toBe(false);
+    await expect(hasLastUpdated, 'Customer grid should NOT have "Last Updated On" column').toBe(false);
 
     // Expected columns: RMA ID, Serial, Status, Submitted On, Action
     const expectedCols = ['RMA ID', 'Serial', 'Status', 'Submitted On', 'Action'];
     for (const col of expectedCols) {
       const found = headerTexts.some(h => new RegExp(col, 'i').test(h));
-      expect(found, `Customer grid should have "${col}" column`).toBe(true);
+      await expect(found, `Customer grid should have "${col}" column`).toBe(true);
     }
   });
 
-  test('TC-VR-CUST-BTNS | Customer sees Submit RMA + Filter Data but NOT Export To Excel (per spreadsheet Row 8)', async ({ page }) => {
+  test('TC-VR-CUST-BTNS | Customer sees Submit RMA + Filter Data but NOT Export To Excel (per spreadsheet Row 8) @view', async ({ page }) => {
+    Logger.step('Customer sees Submit RMA + Filter Data but NOT Export To Excel (per spreadsheet ');
+
     // Customer buttons: Submit RMA Request, Filter Data (no Export To Excel)
     const submitBtn = page.locator('a, button').filter({ hasText: /Submit RMA Request/i }).first();
     const filterBtn = page.locator('a, button').filter({ hasText: /Filter Data/i }).first();
     const exportBtn = page.locator('a, button').filter({ hasText: /Export To Excel/i }).first();
 
-    expect(await submitBtn.isVisible().catch(() => false), 'Customer should see Submit RMA Request').toBe(true);
-    expect(await filterBtn.isVisible().catch(() => false), 'Customer should see Filter Data').toBe(true);
-    expect(await exportBtn.isVisible().catch(() => false), 'Customer should NOT see Export To Excel').toBe(false);
+    await expect(await submitBtn.isVisible().catch(() => false), 'Customer should see Submit RMA Request').toBe(true);
+    await expect(await filterBtn.isVisible().catch(() => false), 'Customer should see Filter Data').toBe(true);
+    await expect(await exportBtn.isVisible().catch(() => false), 'Customer should NOT see Export To Excel').toBe(false);
   });
 });

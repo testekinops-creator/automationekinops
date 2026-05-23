@@ -9,6 +9,8 @@ const { test, expect } = require('@playwright/test');
 const { getStorageStatePath } = require('../../../src/helpers/rmaAuthHelper');
 const { SubmitRMAPage } = require('../../../src/pages/rma/SubmitRMAPage');
 const { USERS } = require('../../../src/helpers/Constants');
+const { allure } = require('allure-playwright');
+const Logger = require('../../../src/helpers/Logger');
 
 // ============================================================================
 // RBAC EXPECTED STATE MATRIX
@@ -63,13 +65,17 @@ for (const [userKey, userConfig] of Object.entries(USERS)) {
     // Authenticate using the specific user's storage state
     test.use({ storageState: getStorageStatePath(userKey) });
 
-    test(`Verify field access on Submit RMA page for ${userKey}`, async ({ page }) => {
+    test(`Verify field access on Submit RMA page for ${userKey} @rbac`, async ({ page }) => {
+    Logger.step('Verify field access on Submit RMA page for ...');
+    await allure.feature('Submit RMA');
+    await allure.story('Role Access to Submit');
+
       const expectedAccess = RBAC_MATRIX[userKey] || DEFAULT_ACCESS;
       const submitPage = new SubmitRMAPage(page);
       
       // Navigate to Submit RMA Page
       await submitPage.goto();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Helper function to assert state
       const assertState = async (locator, name, shouldBeEnabled) => {

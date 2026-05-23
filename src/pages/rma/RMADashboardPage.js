@@ -74,8 +74,8 @@ class RMADashboardPage extends BasePage {
       // Fallback: click the card itself
       await card.click();
     }
-    await this.page.waitForLoadState('networkidle').catch(() => {});
-    await this.page.waitForTimeout(1000);
+    await this.page.waitForLoadState('domcontentloaded').catch(() => {});
+    await this.page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
   }
 
   async getCardCount(cardName) {

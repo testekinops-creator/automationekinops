@@ -25,13 +25,13 @@ module.exports = defineConfig({
   testMatch: '**/*.spec.js',
 
   // --- Execution ---
-  fullyParallel: false,       // RMA tests share state — run sequentially
-  workers: 1,
+  fullyParallel: true,        // Parallel execution — each test gets its own page
+  workers: 4,                 // 4 parallel workers for speed
   forbidOnly: !!process.env.CI,
 
   // --- Retry & Timeout ---
-  retries: process.env.CI ? 1 : 0,
-  timeout: 60_000,            // Reduced from 240s — no more rate-limit waits
+  retries: 1,                 // Retry once to handle flaky network
+  timeout: 60_000,
   expect: { timeout: 10_000 },
 
   // --- Reporting ---
@@ -52,7 +52,7 @@ module.exports = defineConfig({
 
     // --- Artifacts ---
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: 'off',               // Disabled for speed — enable when debugging
     trace: 'retain-on-failure',
 
     // --- Browser Settings ---
@@ -105,49 +105,53 @@ module.exports = defineConfig({
       },
     },
 
+    // ─── Phase 2b: Test Data Setup (create RMAs in all statuses) ───
+    // Runs AFTER auth setup so .auth/*.json files exist.
+    // Creates RMAs in Submitted/Accepted/Received/Repaired/On-Hold/Rejected/Closed.
+    {
+      name: 'data-setup',
+      testDir: './tests',
+      testMatch: 'test-data.setup.js',
+      dependencies: ['rma-setup'],
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+    },
+
     // ─── Phase 3: RMA Full Suite (cached sessions — zero UI logins) ───
     // All spec files except auth.spec.js. Default storageState = rmaAdmin.
     // Tests needing a different role override via test.use({ storageState }).
     {
       name: 'rma',
       testDir: './tests/rma',
-      testIgnore: ['auth.spec.js'],
+      testIgnore: ['auth.spec.js', '**/security/**/*.spec.js'],
       // Only match specs from subdirectories + root-level rbac
       // This naturally excludes legacy root-level duplicates (submit-rma, dashboard, etc.)
       testMatch: [
         '**/functional/**/*.spec.js',
         '**/regression/**/*.spec.js',
-        '**/security/**/*.spec.js',
         '**/access/**/*.spec.js',
         'rbac.spec.js',
       ],
-      dependencies: ['rma-setup'],
+      dependencies: ['data-setup'],
       use: {
         ...devices['Desktop Chrome'],
         storageState: getStorageStatePath('rmaAdmin'),
       },
     },
 
-    // === Cross-Browser (use cached sessions) ===
-    {
-      name: 'rma-firefox',
-      testDir: './tests/rma',
-      testIgnore: ['auth.spec.js'],
-      dependencies: ['rma-setup'],
-      use: {
-        ...devices['Desktop Firefox'],
-        storageState: getStorageStatePath('rmaAdmin'),
-      },
-    },
-    {
-      name: 'rma-webkit',
-      testDir: './tests/rma',
-      testIgnore: ['auth.spec.js'],
-      dependencies: ['rma-setup'],
-      use: {
-        ...devices['Desktop Safari'],
-        storageState: getStorageStatePath('rmaAdmin'),
-      },
-    },
+    // === Cross-Browser — DISABLED per user request (Run 11) ===
+    // Firefox run disabled — only Chromium tests active
+    // {
+    //   name: 'rma-firefox',
+    //   testDir: './tests/rma',
+    //   testIgnore: ['auth.spec.js'],
+    //   dependencies: ['rma-setup'],
+    //   use: {
+    //     ...devices['Desktop Firefox'],
+    //     storageState: getStorageStatePath('rmaAdmin'),
+    //   },
+    // },
+    // WebKit also removed — only Chrome active
   ],
 });

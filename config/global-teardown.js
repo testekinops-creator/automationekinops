@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const { cleanupSerials } = require('../src/helpers/rmaCleanup');
+const Logger = require('../src/helpers/Logger');
+
+const logger = new Logger('GlobalTeardown');
 
 /**
  * Global Teardown — Runs once after all tests complete.
@@ -10,12 +13,13 @@ const { cleanupSerials } = require('../src/helpers/rmaCleanup');
  * Responsibilities:
  *   1. Cleanup .auth/ storageState session files (security hygiene)
  *   2. Final sweep: Reject + Close any RMAs still active for test serial numbers
- *   3. Log summary
+ *   3. Archive logs/ directory with timestamp for CI artifact storage
+ *   4. Log test run end summary
  *
  * @returns {Promise<void>}
  */
 async function globalTeardown() {
-  console.log('\n🧹 [Global Teardown] Cleaning up...');
+  logger.info('Global teardown started — cleaning up...');
 
   // --- Cleanup .auth/ session files (contain sensitive cookies) ---
   const authDir = path.resolve(__dirname, '..', '.auth');
@@ -24,23 +28,40 @@ async function globalTeardown() {
     for (const file of files) {
       fs.unlinkSync(path.join(authDir, file));
     }
-    console.log(`   🗑️  Removed ${files.length} cached session file(s) from .auth/`);
+    logger.info(`Removed ${files.length} cached session file(s) from .auth/`);
   }
 
   // --- Layer 3: Safety-net cleanup for any remaining active RMAs ---
-  console.log('\n   🛡️  [Layer 3] Safety-net cleanup — catching anything fixture missed...');
+  logger.info('[Layer 3] Cleaning up generic test serials...');
   const testSerials = [
-    process.env.RMA_VALID_SERIAL || 'T1138004504037565',
     'L1040003043099099', // CI serial for customer-reassignment tests
-    'S2513008343588978', // Workflow & edit-rma test serial
-    // 'L1040004215100962',
   ];
   await cleanupSerials(testSerials, {
     prefix: '[Global Teardown]',
     includeEngineerPhase: true,
   });
 
-  console.log('   ✅ Teardown complete.\n');
+  // --- Archive logs/ with timestamp ---
+  const logsDir = path.resolve(__dirname, '..', 'logs');
+  if (fs.existsSync(logsDir)) {
+    const archiveBase = path.resolve(__dirname, '..', 'logs-archive');
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const archiveDest = path.join(archiveBase, `run-${timestamp}`);
+    try {
+      fs.mkdirSync(archiveDest, { recursive: true });
+      const logFiles = fs.readdirSync(logsDir).filter((f) => f.endsWith('.log'));
+      for (const file of logFiles) {
+        fs.copyFileSync(path.join(logsDir, file), path.join(archiveDest, file));
+      }
+      logger.info(`Logs archived to logs-archive/run-${timestamp}/ (${logFiles.length} file(s))`);
+    } catch (err) {
+      logger.warn(`Log archiving failed: ${err.message}`);
+    }
+  }
+
+  logger.info('='.repeat(60));
+  logger.info('TEST RUN COMPLETE');
+  logger.info('='.repeat(60));
 }
 
 module.exports = globalTeardown;

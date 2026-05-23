@@ -74,9 +74,22 @@ class FactoryInsertPage extends BasePage {
   }
 
   async fillSerial(sn) {
-    await this.serialInput.fill(sn);
-    await this.serialInput.press('Tab');
-    await this.page.waitForTimeout(1500);
+    await this.serialInput.click();
+    await this.page.keyboard.press('Control+A');
+    await this.page.keyboard.press('Backspace');
+    await this.page.keyboard.type(sn, { delay: 30 });
+    await this.page.keyboard.press('Tab');
+    await this.serialInput.dispatchEvent('focusout');
+    // Click outside the serial field on body to ensure AJAX lookup fires
+    await this.page.locator('body').click({ position: { x: 0, y: 0 } });
+    // Wait for product name to populate via AJAX (up to 10s)
+    await this.page.waitForFunction(
+      () => {
+        const el = document.querySelector('#product_name');
+        return el && el.value && el.value.length > 0;
+      },
+      { timeout: 10000 }
+    ).catch(() => {});
   }
 
   async selectCustomer(name) {
@@ -97,13 +110,19 @@ class FactoryInsertPage extends BasePage {
     const isSelect2 = await customerSelect2.isVisible().catch(() => false);
     if (isSelect2) {
       await customerSelect2.click();
-      await this.page.waitForTimeout(500);
       const searchField = this.page.locator('.select2-search__field:visible').last();
       if (await searchField.isVisible()) {
         await searchField.fill(customerName);
-        await this.page.waitForTimeout(1000);
-        await this.page.keyboard.press('Enter');
-        await this.page.waitForTimeout(1000);
+        // Wait for Select2 AJAX search results to appear
+        await this.page.locator('.select2-results__option').filter({ hasText: new RegExp(customerName, 'i') }).first()
+          .waitFor({ state: 'visible', timeout: 10000 }).catch(() => {});
+        await this.page.locator('.select2-results__option').filter({ hasText: new RegExp(customerName, 'i') }).first()
+          .click().catch(async () => {
+            // Fallback: press Enter if click fails
+            await this.page.keyboard.press('Enter');
+          });
+        // Wait for AJAX to populate user dropdown after customer selection
+        await this.page.waitForTimeout(2000);
       }
     } else {
       // Fallback to native select
@@ -117,18 +136,25 @@ class FactoryInsertPage extends BasePage {
    * Select customer username using Select2 or native select.
    */
   async selectCustomerUserBySearch(username) {
-    await this.page.waitForTimeout(3000); // wait for AJAX population
+    // Wait for AJAX to populate user dropdown after customer selection
+    await this.page.waitForTimeout(3000);
     const userSelect2 = this.page.locator('#user_id').locator('xpath=..').locator('.select2-selection');
     const isSelect2 = await userSelect2.isVisible().catch(() => false);
     if (isSelect2) {
       await userSelect2.click();
-      await this.page.waitForTimeout(500);
+      // Wait for Select2 dropdown to open
+      await this.page.locator('.select2-search__field:visible').last()
+        .waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
       const searchField = this.page.locator('.select2-search__field:visible').last();
       if (await searchField.isVisible()) {
         await searchField.fill(username);
-        await this.page.waitForTimeout(1000);
-        await this.page.keyboard.press('Enter');
-        await this.page.waitForTimeout(1000);
+        // Wait for matching option to appear in Select2 results
+        await this.page.locator('.select2-results__option').filter({ hasText: new RegExp(username, 'i') }).first()
+          .waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
+        await this.page.locator('.select2-results__option').filter({ hasText: new RegExp(username, 'i') }).first()
+          .click().catch(async () => {
+            await this.page.keyboard.press('Enter');
+          });
       }
     } else {
       const options = await this.userDropdown.locator('option').allTextContents();
@@ -149,12 +175,12 @@ class FactoryInsertPage extends BasePage {
 
   async clickSubmit() {
     await this.submitBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async clickCancel() {
     await this.cancelBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async fillComments(text) {
@@ -192,7 +218,7 @@ class FactoryInsertPage extends BasePage {
   async clickClickHereLink() {
     await this.clickHereLink.waitFor({ state: 'visible', timeout: 10_000 });
     await this.clickHereLink.click();
-    await this.page.waitForTimeout(1000);
+    await this.page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
   }
 
   /**

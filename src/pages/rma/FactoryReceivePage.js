@@ -54,7 +54,7 @@ class FactoryReceivePage extends BasePage {
 
   async clickAdd() {
     await this.addRowBtn.click();
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(2000ms)
   }
 
   /**
@@ -75,7 +75,7 @@ class FactoryReceivePage extends BasePage {
     }
     // Select the first non-default option (index 1)
     await dropdown.selectOption({ index: 1 });
-    await this.page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms)
     const selectedValue = await dropdown.inputValue().catch(() => '');
     console.log(`  [FactoryReceive] Selected RMA ID: ${selectedValue}`);
     return true;
@@ -83,7 +83,7 @@ class FactoryReceivePage extends BasePage {
 
   async submitReceive() {
     await this.submitBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async receiveSerial(sn) {

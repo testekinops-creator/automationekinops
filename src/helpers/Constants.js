@@ -1,4 +1,5 @@
 require('dotenv').config();
+const config = require('./config');
 
 /**
  * Helper: read an env var or return a fallback.
@@ -69,7 +70,7 @@ const RMAConstants = {
     customerTwo: {
       displayName: 'Customer Two',
       userType: 'Customer',
-      email: env('RMA_CUSTOMER2_EMAIL', 'customer.testtransport@rma.com'),
+      email: env('RMA_CUSTOMER2_EMAIL', 'customer.testaccess2@rma.com'),
       password: env('RMA_CUSTOMER2_PASSWORD'),
       role: 'Customer User',
     },
@@ -126,7 +127,7 @@ const RMAConstants = {
 
   // --- RMA Test Data ---
   RMA: {
-    validSerial: process.env.RMA_VALID_SERIAL || 'T1138004504037565',
+    validSerial: config.TEST_SERIALS.valid || 'T1138004504037565',
     validSerial2: 'L1040004215100962',
     ciSerial: 'L1040003043099099',   // Serial for CI / customer-reassignment tests
     workflowSerial: 'S2513008343588978', // Dedicated serial for workflow & edit-rma tests

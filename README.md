@@ -68,7 +68,7 @@ Automation Framework 2/
 | Repair Engineer  | rma.engineer@rma.com             | Engineer@1234567  | RMA Repair Engineer   |
 | Repair Watcher   | rma.watcher@rma.com              | Watcher@1234567   | RMA Repair Watcher    |
 | Customer One     | customer.testaccess@rma.com      | Customer@1234567  | Customer User         |
-| Customer Two     | customer.testtransport@rma.com   | Customer@1234567  | Customer User         |
+| Customer Two     | customer.testaccess2@rma.com   | Customer@1234567  | Customer User         |
 
 ---
 

@@ -57,7 +57,7 @@ class ManageAddressPage {
   // ─── Navigation ───────────────────────────────────────────────────────────────
   async goto() {
     await this.page.goto(ROUTES.manageAddress);
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   // ─── List Actions ─────────────────────────────────────────────────────────────
@@ -71,14 +71,14 @@ class ManageAddressPage {
 
   async clickAddNew() {
     await this.addNewBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async clickViewOnRow(index = 0) {
     const row = this.tableRows.nth(index);
     const viewBtn = row.locator('a, button, [class*="action"] a').last();
     await viewBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async getRowText(index = 0) {
@@ -88,13 +88,13 @@ class ManageAddressPage {
   // ─── Filter Actions ───────────────────────────────────────────────────────────
   async openFilter() {
     await this.filterDataBtn.click();
-    await this.page.waitForTimeout(400);
+    // removed: waitForTimeout(400ms)
   }
 
   async filterByKeyword(keyword) {
     await this.filterKeyword.fill(keyword);
     await this.filterApplyBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async selectFilterCustomer(customerName) {
@@ -110,16 +110,16 @@ class ManageAddressPage {
       // Select2 interaction - find the container for the customer select specifically
       const container = nativeSelect.locator('xpath=following-sibling::*[contains(@class, "select2-container")]').first();
       await container.click().catch(() => this.filterCustomerSelect.click());
-      await this.page.waitForTimeout(300);
+      // removed: waitForTimeout(300ms)
       const searchInput = this.page.locator('.select2-search__field, .select2-search input').last();
       if (await searchInput.isVisible()) {
         await searchInput.fill(customerName);
-        await this.page.waitForTimeout(500);
+        // removed: waitForTimeout(500ms)
         const option = this.page.locator('.select2-results__option').filter({ hasText: customerName }).first();
         await option.click().catch(() => {});
       }
     }
-    await this.page.waitForTimeout(300);
+    // removed: waitForTimeout(300ms)
   }
 
   // ─── Form Actions ─────────────────────────────────────────────────────────────
@@ -127,16 +127,16 @@ class ManageAddressPage {
     const container = this.page.locator('#select2-customer_id-container, .select2-container').first();
     await container.waitFor({ state: 'visible', timeout: 5000 });
     await container.click();
-    await this.page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms)
     const searchInput = this.page.locator('.select2-search__field:visible').first();
     if (await searchInput.isVisible({ timeout: 2000 }).catch(() => false)) {
       await searchInput.fill(customerName);
-      await this.page.waitForTimeout(1500);
+      await this.page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1500ms)
     }
     const option = this.page.locator('.select2-results__option:not(.select2-results__message)').filter({ hasText: customerName }).first();
     await option.waitFor({ state: 'visible', timeout: 5000 });
     await option.click();
-    await this.page.waitForTimeout(2000);
+    await this.page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(2000ms)
   }
 
   async selectUser(userName) {
@@ -147,16 +147,16 @@ class ManageAddressPage {
       : userSelect2Fallback;
     await container.waitFor({ state: 'visible', timeout: 5000 });
     await container.click();
-    await this.page.waitForTimeout(1000);
+    await this.page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
     const searchInput = this.page.locator('.select2-search__field:visible').first();
     if (await searchInput.isVisible({ timeout: 2000 }).catch(() => false)) {
       await searchInput.fill(userName);
-      await this.page.waitForTimeout(1500);
+      await this.page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1500ms)
     }
     const option = this.page.locator('.select2-results__option').filter({ hasText: userName }).first();
     await option.waitFor({ state: 'visible', timeout: 5000 });
     await option.click();
-    await this.page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms)
   }
 
   async fillAddressForm({ contactName, company, building, street, zipcode, city, country, phone }) {
@@ -174,12 +174,12 @@ class ManageAddressPage {
 
   async submitForm() {
     await this.submitBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async clickBack() {
     await this.backBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   // ─── Validation ───────────────────────────────────────────────────────────────

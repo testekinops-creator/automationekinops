@@ -5,8 +5,8 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main]
-  schedule:
-    - cron: '0 2 * * *'  # Nightly at 2 AM UTC (7:30 AM IST)
+  # schedule:
+  #   - cron: '0 2 * * *'  # Nightly at 2 AM UTC — DISABLED (enable when ready)
   workflow_dispatch:
     inputs:
       test_suite:

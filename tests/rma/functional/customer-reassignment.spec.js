@@ -47,7 +47,16 @@ test.describe.serial('CUSTOMER-REASSIGNMENT | Full Lifecycle @customer-reassignm
     await page.keyboard.type(RMA.ciSerial, { delay: 30 });
     await page.keyboard.press('Tab');
     await serialInput.dispatchEvent('focusout');
-    await page.waitForTimeout(3000);
+    // Click outside on body to trigger blur/AJAX lookup
+    await page.locator('body').click({ position: { x: 0, y: 0 } });
+    // Wait for AJAX product load (up to 10s)
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('#product_name');
+        return el && el.value && el.value.length > 0;
+      },
+      { timeout: 10000 }
+    ).catch(() => {});
 
     // Check for "in progress" error — if the serial already has an active RMA
     const inProgressError = page.locator('text=/in progress/i').first();

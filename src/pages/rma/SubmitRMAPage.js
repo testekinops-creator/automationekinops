@@ -78,7 +78,16 @@ class SubmitRMAPage extends BasePage {
     await this.page.keyboard.press('Tab');
     // Also dispatch focusout explicitly as a safety net for jQuery listeners
     await this.serialNumberInput.dispatchEvent('focusout');
-    await this.page.waitForTimeout(2000);
+    // Click outside the serial field on body to ensure AJAX lookup fires (blur event)
+    await this.page.locator('body').click({ position: { x: 0, y: 0 } });
+    // Wait for product name to populate via AJAX (up to 10s)
+    await this.page.waitForFunction(
+      () => {
+        const el = document.querySelector('#product_name');
+        return el && el.value && el.value.length > 0;
+      },
+      { timeout: 10000 }
+    ).catch(() => {});
   }
 
   async getCharCounterValue() {
@@ -91,24 +100,30 @@ class SubmitRMAPage extends BasePage {
     // Click the visible Select2 container next to the hidden #customer_id select
     const customerSelect2 = this.page.locator('#customer_id').locator('xpath=..').locator('.select2-selection');
     await customerSelect2.click();
-    await this.page.waitForTimeout(500);
     const searchField = this.page.locator('.select2-search__field');
     await searchField.fill(customerName);
-    await this.page.waitForTimeout(1500);
+    // Wait for Select2 AJAX search results to appear
+    await this.page.locator('.select2-results__option').filter({ hasText: new RegExp(customerName, 'i') }).first()
+      .waitFor({ state: 'visible', timeout: 10000 });
     await this.page.locator('.select2-results__option').filter({ hasText: new RegExp(customerName, 'i') }).first().click();
-    await this.page.waitForTimeout(1000);
+    // Wait for AJAX to populate user dropdown after customer selection
+    await this.page.waitForTimeout(2000);
   }
 
   async selectCustomerUser(username) {
     // Wait for the AJAX call from customer selection to populate the user dropdown
+    // The user list loads asynchronously after customer is selected
     await this.page.waitForTimeout(3000);
-    // Click the visible Select2 container next to the hidden #customer_user_id select
+    // Click the visible Select2 container next to the hidden #user_id select
     const userSelect2 = this.page.locator('#user_id').locator('xpath=..').locator('.select2-selection');
     await userSelect2.click();
-    await this.page.waitForTimeout(500);
+    // Wait for Select2 dropdown to open
+    await this.page.locator('.select2-search__field').waitFor({ state: 'visible', timeout: 5000 });
     const searchField = this.page.locator('.select2-search__field');
     await searchField.fill(username);
-    await this.page.waitForTimeout(1500);
+    // Wait for matching option to appear in Select2 results
+    await this.page.locator('.select2-results__option').filter({ hasText: new RegExp(username, 'i') }).first()
+      .waitFor({ state: 'visible', timeout: 15000 });
     await this.page.locator('.select2-results__option').filter({ hasText: new RegExp(username, 'i') }).first().click();
   }
 
@@ -144,12 +159,12 @@ class SubmitRMAPage extends BasePage {
 
   async clickSave() {
     await this.saveBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async clickClose() {
     await this.closeBtn.click();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   /**
@@ -159,7 +174,7 @@ class SubmitRMAPage extends BasePage {
   async clickClickHereLink() {
     await this.clickHereLink.waitFor({ state: 'visible', timeout: 10_000 });
     await this.clickHereLink.click();
-    await this.page.waitForTimeout(1000);
+    await this.page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
   }
 
   /**
@@ -344,7 +359,7 @@ class SubmitRMAPage extends BasePage {
   async submitNewReturnLocation() {
     const iframe = this.getReturnLocationIframe();
     await iframe.locator('button:has-text("Submit"), input[type="submit"], button[type="submit"]').first().click();
-    await this.page.waitForTimeout(3000);
+    await this.page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(3000ms)
   }
 
   /**
@@ -375,4 +390,3 @@ class SubmitRMAPage extends BasePage {
 }
 
 module.exports = { SubmitRMAPage };
-

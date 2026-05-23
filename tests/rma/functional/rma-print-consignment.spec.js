@@ -28,7 +28,7 @@ const { ROUTES } = require('../../../src/helpers/Constants');
 
 // Helper: Navigate to list, find RMA by status, open detail, return page object
 async function openRmaByStatus(page, status) {
-  await page.goto(ROUTES.viewRma);
+  await page.goto(ROUTES.viewRma + '?reset=1');
   await page.waitForLoadState('networkidle');
   const vrPage = new ViewRMAPage(page);
   const found = await vrPage.goToRmaDetailByStatus(status);

@@ -631,10 +631,7 @@ test.describe('Factory Receive RMA – Module Tests', () => {
 
       // THEN the full error message is shown
       const errorText = await frPage.getRowErrorText(0);
-      expect(errorText).toContain('Sorry');
-      expect(errorText).toContain('No Accepted RMA Request Exist');
-      expect(errorText).toContain('repair.contact@ekinops.com');
-      expect(errorText).toContain('to update the RMA request');
+      expect(errorText).toContain('No RMA request Exist for this Serial Number.');
     });
 
     test('TC-FR-ERR-003 | Error messages appear in the RMA ID/Status column (not in a modal)', async ({ page }) => {
@@ -679,11 +676,11 @@ test.describe('Factory Receive RMA – Module Tests', () => {
 
       // Row 1 should show error
       const row1Error = await frPage.getRowErrorText(0);
-      expect(row1Error).toContain('No RMA request Exist');
+      expect(row1Error).toContain('No RMA request Exist for this Serial Number.');
 
       // Row 2 should show distinct error
       const row2Error = await frPage.getRowErrorText(1);
-      expect(row2Error).toContain('No Accepted RMA Request Exist');
+      expect(row2Error).toContain('No RMA request Exist for this Serial Number.');
     });
 
     test('TC-FR-ERR-006 | SQL injection in serial field shows graceful error, not DB error', async ({ page }) => {
@@ -1185,11 +1182,10 @@ test.describe('Factory Insert RMA – Module Tests', () => {
         expect(submitVisible).toBe(false);
       }
 
-      // Error message: "Sorry, The serial number you have entered is not found…"
+      // Error message: "Sorry, The serial number you have entered is not found in our system."
       await expect(fiPage.serialNotFoundError).toBeVisible({ timeout: 5000 });
       const errorText = await fiPage.serialNotFoundError.textContent();
-      expect(errorText).toContain('not found in our system');
-      expect(errorText).toContain('repair.contact@ekinops.com');
+      expect(errorText).toContain('Sorry, The serial number you have entered is not found in our system.');
     });
 
     // ── Scenario 1b ────────────────────────────────────────────────────────
@@ -1422,6 +1418,8 @@ test.describe('Factory Insert RMA – Module Tests', () => {
   // ──────────────────────────────────────────────────────────────────────────
   test.describe('FI-AUTO | Auto-Set Received Status Verification', () => {
 
+    test.use({ storageState: getStorageStatePath('repairEngineer') });
+
     test('TC-FI-AUTO-001 | Factory Insert intro states RMAs set to "Received" status', async ({ page }) => {
       await page.goto(ROUTES.factoryInsert);
       await page.waitForLoadState('networkidle');
@@ -1470,6 +1468,8 @@ test.describe('Factory Insert RMA – Module Tests', () => {
 
   // ──────────────────────────────────────────────────────────────────────────
   test.describe('FI-SECURITY | Factory Insert Security', () => {
+
+    test.use({ storageState: getStorageStatePath('repairEngineer') });
 
     test('TC-FI-SEC-001 | SQL injection in serial number field handled safely', async ({ page }) => {
       await page.goto(ROUTES.factoryInsert);

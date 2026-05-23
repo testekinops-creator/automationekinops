@@ -1,0 +1,20 @@
+Test: EDIT-001 | Edit button on Submitted RMA opens edit form @edit
+Status: failed
+
+Steps:
+
+Logs:
+   🔄 [EDIT-Setup] Cleaning up active RMAs for: S2513008343588978
+   [EDIT-Setup] Phase 1 — Admin login...
+   ⚠️  Login attempt 1 failed for administrator.test@rma.com — retrying in 2s
+   ⚠️  Login attempt 2 failed for administrator.test@rma.com — retrying in 2s
+   🔧 [EDIT-Setup] S/N S2513008343588978: found in status "Unknown"
+   ✅ [EDIT-Setup] RMA cleanup completed
+[18:26:23] [32MINFO[39M | [32m[SubmitRMAPage]   ▶ GOTO → /rma/add[39m
+[18:26:26] [32MINFO[39M | [32m[Test]   [EDIT-Setup] Product resolved: ""[39m
+   🔄 [EDIT-Teardown] Cleaning up active RMAs for: S2513008343588978
+   [EDIT-Teardown] Phase 1 — Admin login...
+   ⚠️  Login attempt 1 failed for administrator.test@rma.com — retrying in 2s
+   ⚠️  Login attempt 2 failed for administrator.test@rma.com — retrying in 2s
+   🔧 [EDIT-Teardown] S/N S2513008343588978: found in status "Unknown"
+   ✅ [EDIT-Teardown] RMA cleanup completed

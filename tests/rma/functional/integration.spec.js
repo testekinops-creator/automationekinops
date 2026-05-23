@@ -19,7 +19,7 @@
  */
 
 const { test, expect } = require('../../../src/fixtures/rmaFixtures');
-const { loginAs }         = require('../../../src/helpers/rmaAuthHelper');
+const { loginAs, switchRole }         = require('../../../src/helpers/rmaAuthHelper');
 const { skipWithEvidence } = require('../../../src/helpers/skipWithEvidence');
 
 const { RMADashboardPage: DashboardPage } = require('../../../src/pages/rma/RMADashboardPage');
@@ -28,6 +28,9 @@ const { ViewRMAPage } = require('../../../src/pages/rma/ViewRMAPage');
 const { FactoryReceivePage } = require('../../../src/pages/rma/FactoryReceivePage');
 const { FactoryInsertPage } = require('../../../src/pages/rma/FactoryInsertPage');
 const { USERS, ROUTES, RMA, DASHBOARD, ERRORS } = require('../../../src/helpers/Constants');
+const { allure } = require('allure-playwright');
+const Logger = require('../../../src/helpers/Logger');
+const TestData = require('../../../src/helpers/TestData');
 
 // ─── shared state across steps within a scenario ───────────────────────────────
 let createdRmaId = '';   // populated in Submit step, reused in later steps
@@ -38,7 +41,7 @@ let createdRmaId = '';   // populated in Submit step, reused in later steps
  */
 async function switchUser(page, user) {
   await page.context().clearCookies();
-  await loginAs(page, user);
+  await switchRole(page, user);
 }
 
 /**
@@ -46,11 +49,13 @@ async function switchUser(page, user) {
  */
 async function openRmaById(page, rmaId) {
   await page.goto(ROUTES.viewRma);
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
   const badge = page.locator(`button:has-text("${rmaId}"), td:has-text("${rmaId}")`).first();
   await badge.waitFor({ state: 'visible', timeout: 10_000 });
   await badge.click();
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState('domcontentloaded');
+  // Wait for AJAX DataTable to populate
+  await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 }
 
 /**
@@ -70,10 +75,10 @@ async function expectWorkflowStatus(page, status) {
 
   if (!hasBadge && !hasSuccess && !hasCell && !redirectedAway) {
     // Take a diagnostic log
-    console.log(`  [expectWorkflowStatus] Expected "${status}" but found none. URL: ${page.url()}`);
+    Logger.info(`  [expectWorkflowStatus] Expected "${status}" but found none. URL: ${page.url()}`);
   }
 
-  expect(hasBadge || hasSuccess || hasCell || redirectedAway).toBe(true);
+  await expect(hasBadge || hasSuccess || hasCell || redirectedAway).toBe(true);
 }
 
 /**
@@ -91,7 +96,7 @@ async function clickWorkflowAction(page, actionName) {
 
   // Click the button — this may open a modal with iframe or navigate directly
   await btn.click();
-  await page.waitForTimeout(2000);
+  await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(2000ms)
 
   // Check if a modal with iframe appeared
   const iframeEl = page.locator('#iframeWindow, iframe[id="iframeWindow"]').first();
@@ -106,22 +111,22 @@ async function clickWorkflowAction(page, actionName) {
     const hasSyncError = await syncError.isVisible({ timeout: 3000 }).catch(() => false);
 
     if (hasSyncError) {
-      console.log(`  [clickWorkflowAction] "not in sync" error detected — closing modal and refreshing`);
+      Logger.info(`  [clickWorkflowAction] "not in sync" error detected — closing modal and refreshing`);
       // Close the modal
       await page.keyboard.press('Escape');
-      await page.waitForTimeout(500);
+      // removed: waitForTimeout(500ms) — use event-based wait if needed
       // Reload to get fresh status
-      await page.reload({ waitUntil: 'networkidle' });
-      await page.waitForTimeout(1000);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
       // Retry: click the action button again
       const retryBtn = page.locator(
         `button:has-text("${actionName}"), a:has-text("${actionName}"), [class*="action"]:has-text("${actionName}")`
       ).first();
       if (await retryBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
         await retryBtn.click();
-        await page.waitForTimeout(2000);
+        await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(2000ms)
       } else {
-        console.log(`  [clickWorkflowAction] "${actionName}" button not visible after refresh — status may have changed`);
+        Logger.info(`  [clickWorkflowAction] "${actionName}" button not visible after refresh — status may have changed`);
       }
     }
     // Modal/iframe flow — fillWorkflowDialog will handle form inside iframe
@@ -152,7 +157,7 @@ async function fillWorkflowDialog(page, { comment = '', solution = '', repairSol
   }
 
   // Wait for the form to be ready
-  await page.waitForTimeout(1000);
+  await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
 
   /**
    * Helper: fill a field that may be wrapped in Summernote rich-text editor.
@@ -194,13 +199,13 @@ async function fillWorkflowDialog(page, { comment = '', solution = '', repairSol
   const repairLocationSelect2 = container.locator('.select2-container').first();
   if (await repairLocationSelect2.isVisible({ timeout: 2000 }).catch(() => false)) {
     await repairLocationSelect2.click();
-    await page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms) — use event-based wait if needed
     // Select the first available VALID option from the dropdown (Select2 dropdown renders in main page, not iframe)
     const dropdownContext = iframeVisible ? page : container;
     const option = dropdownContext.locator('.select2-results__option:not([aria-disabled="true"]):not(:text-is("Select"))').filter({ hasText: /.+/ }).first();
     if (await option.isVisible({ timeout: 3000 }).catch(() => false)) {
       await option.click();
-      await page.waitForTimeout(300);
+      // removed: waitForTimeout(300ms) — use event-based wait if needed
     }
   }
 
@@ -270,24 +275,24 @@ async function fillWorkflowDialog(page, { comment = '', solution = '', repairSol
   if (submitVisible) {
     // Wait for navigation safely to ensure we don't proceed before server response
     await Promise.all([
-      page.waitForNavigation({ waitUntil: 'networkidle', timeout: 15000 }).catch(() => {}),
+      page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {}),
       submitBtn.click()
     ]);
     // Added explicit wait to give the backend time to sync the status, preventing "current status not synced" errors
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(2000ms)
   } else {
     // Bare form (e.g., Close) — submit via JavaScript
     const bareForm = evalContext.locator('form#rmaWorkflow, form[action*="/rma/workflow"]').first();
     const formExists = await bareForm.waitFor({ state: 'attached', timeout: 3_000 }).then(() => true).catch(() => false);
     if (formExists) {
-      console.log('  [fillWorkflowDialog] Bare form — submitting directly');
+      Logger.info('  [fillWorkflowDialog] Bare form — submitting directly');
       await Promise.all([
-        page.waitForNavigation({ waitUntil: 'networkidle', timeout: 15000 }).catch(() => {}),
+        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {}),
         bareForm.evaluate(f => f.submit())
       ]);
-      await page.waitForTimeout(2000);
+      await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(2000ms)
     } else {
-      console.log('  [fillWorkflowDialog] No submit button or form found');
+      Logger.info('  [fillWorkflowDialog] No submit button or form found');
     }
   }
 }
@@ -312,7 +317,9 @@ async function getDashboardCount(page, cardText) {
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
 
-  test('Step 1 – Customer submits a new RMA request', async ({ page }) => {
+  test('Step 1 – Customer submits a new RMA request @integration', async ({ page }) => {
+    Logger.step('Step 1 – Customer submits a new RMA request');
+
 
     // ── GIVEN: Customer One is logged in
     await switchUser(page, USERS.customerOne);
@@ -329,21 +336,21 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     if (hasInProgressError) {
       const errText = await inProgressMsg.textContent().catch(() => '');
       if (errText.toLowerCase().includes('in progress')) {
-        console.log(`  [Step 1] Serial ${RMA.validSerial} has in-progress RMA: ${errText.trim()}`);
+        Logger.info(`  [Step 1] Serial ${RMA.validSerial} has in-progress RMA: ${errText.trim()}`);
         throw new Error(`Serial ${RMA.validSerial} still has an in-progress RMA. Cleanup failed to clear all existing RMAs for this serial.`);
       }
       // Dismiss any OK button on the popup if it's just a warning
       const okBtn = page.locator('button:has-text("OK"), button:has-text("Ok")').first();
       if (await okBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
         await okBtn.click();
-        await page.waitForTimeout(500);
+        // removed: waitForTimeout(500ms) — use event-based wait if needed
       }
     }
 
     // Verify product was auto-populated — if not, retry the serial entry
     let productCode = await form.getProductCode().catch(() => '');
     if (!productCode) {
-      console.log('  [Step 1] Product code not auto-populated — retrying serial entry');
+      Logger.info('  [Step 1] Product code not auto-populated — retrying serial entry');
       await form.fillSerialNumber(RMA.validSerial);
       await page.waitForTimeout(5000); // Longer wait for AJAX product lookup
       productCode = await form.getProductCode().catch(() => '');
@@ -364,7 +371,7 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
         const currentVal = await selectEl.inputValue().catch(() => '');
         if (!currentVal || currentVal === '' || currentVal === '0') {
           await selectEl.selectOption({ index: 1 }).catch(() => {});
-          await page.waitForTimeout(300);
+          // removed: waitForTimeout(300ms) — use event-based wait if needed
         }
       }
     }
@@ -374,7 +381,7 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     await form.fillNoteForRepair(RMA.noteForRepair);
 
     // ── AND: Wait for Save button to become visible (not d-none) and scroll to it
-    const saveBtn = page.locator('#submitBtn').first();
+    const saveBtn = page.locator('#submitBtn, button:has-text("Save"), button[type="submit"]').first();
     await saveBtn.scrollIntoViewIfNeeded().catch(() => {});
     await expect(saveBtn).toBeVisible({ timeout: 10_000 });
 
@@ -382,20 +389,20 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     await form.clickSave();
 
     // ── THEN: Check for validation errors first
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     const validationError = page.locator('text=/The Following Error/i').first();
     const hasValidationError = await validationError.isVisible({ timeout: 3000 }).catch(() => false);
 
     if (hasValidationError) {
       const errorText = await validationError.locator('xpath=..').textContent().catch(() => '');
-      console.log(`  [Step 1] Validation error after Save: ${errorText.trim()}`);
+      Logger.info(`  [Step 1] Validation error after Save: ${errorText.trim()}`);
       // If the product field error, the serial may not be valid for this customer
       test.info().annotations.push({ type: 'warning', description: `Validation error: ${errorText.trim()}` });
     }
 
     // Verify we navigated away from the add form
     const url = page.url();
-    expect(url).not.toContain('/add');   // navigated away from add form
+    await expect(url).not.toContain('/add');   // navigated away from add form
 
     // Capture the new RMA ID for subsequent steps
     const idMatch = url.match(/rma[-_]?(\d+)|\/(\d+)/i);
@@ -408,7 +415,9 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     await expect(submittedBadge).toBeVisible({ timeout: 10_000 });
   });
 
-  test('Step 2 – Dashboard "Pending Accept" count increments after submission', async ({ page }) => {
+  test('Step 2 – Dashboard "Pending Accept" count increments after submission @integration', async ({ page }) => {
+    Logger.step('Step 2 – Dashboard "Pending Accept" count increments after submission');
+
     // ── GIVEN: RMA Admin logs in and opens Dashboard
     await switchUser(page, USERS.rmaAdmin);
     const dashboard = new DashboardPage(page);
@@ -419,7 +428,9 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
-  test('Step 3 – RMA Admin accepts the Submitted RMA', async ({ page }) => {
+  test('Step 3 – RMA Admin accepts the Submitted RMA @integration', async ({ page }) => {
+    Logger.step('Step 3 – RMA Admin accepts the Submitted RMA');
+
     // Guard: if Step 1 was skipped, no RMA was created — skip gracefully
     if (!createdRmaId) {
       await skipWithEvidence(page, test.info(), 'Step 1 was skipped (product lookup failed) — no Submitted RMA to accept');
@@ -429,7 +440,9 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     // ── GIVEN: RMA Admin opens a Submitted RMA
     await switchUser(page, USERS.rmaAdmin);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const submittedRow = page.locator('tbody tr').filter({ hasText: 'Submitted' }).filter({ hasText: RMA.validSerial }).first();
     const rowVisible = await submittedRow.isVisible({ timeout: 10_000 }).catch(() => false);
@@ -451,7 +464,7 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
       const actionBtn = submittedRow.locator('a[href*="request/view"]').first();
       await actionBtn.click();
     }
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // ── WHEN: Admin clicks Accept
     await clickWorkflowAction(page, 'Accept');
@@ -461,28 +474,30 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
 
     // ── THEN: RMA status changes to Accepted (or we land on the list/detail page)
     // Wait a moment for the redirect or modal close
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(2000ms)
     
     // We MUST verify that the specific RMA we created is actually Accepted now.
     // Go to the View RMA page for our specific RMA ID to verify the status definitively.
     if (createdRmaId) {
       const match = createdRmaId.match(/\d+/);
       const rmaIdNum = match ? match[0] : createdRmaId;
-      await page.goto(`/rma/request/view/${rmaIdNum}`, { waitUntil: 'networkidle' });
-      await page.waitForTimeout(1000);
+      await page.goto(`/rma/request/view/${rmaIdNum}`, { waitUntil: 'domcontentloaded' });
+      await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
     }
     
     const acceptedBadge = page.locator('[class*="badge"], [class*="status"]').filter({ hasText: 'Accepted' }).first();
     const isAccepted = await acceptedBadge.isVisible({ timeout: 5_000 }).catch(() => false);
     
     if (!isAccepted) {
-      console.log(`  [Step 3] RMA ${createdRmaId} failed to transition to Accepted! Workflow submission may have failed validation.`);
+      Logger.info(`  [Step 3] RMA ${createdRmaId} failed to transition to Accepted! Workflow submission may have failed validation.`);
       throw new Error(`RMA ${createdRmaId} is not in Accepted status after Step 3.`);
     }
-    expect(isAccepted).toBe(true);
+    await expect(isAccepted).toBe(true);
   });
 
-  test('Step 4 – Customer sees RMA in "Awaiting Device" bubble after Accept', async ({ page }) => {
+  test('Step 4 – Customer sees RMA in "Awaiting Device" bubble after Accept @integration', async ({ page }) => {
+    Logger.step('Step 4 – Customer sees RMA in "Awaiting Device" bubble after Accept');
+
     // ── GIVEN: Customer One logs in and opens Dashboard
     await switchUser(page, USERS.customerOne);
     const dashboard = new DashboardPage(page);
@@ -494,13 +509,15 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
 
     // ── AND: Clicking the bubble filters View RMA to Accepted RMAs for this customer
     await dashboard.clickCard(DASHBOARD.customer.awaitingDevice);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const statusCell = page.locator('td').filter({ hasText: 'Accepted' }).first();
     await expect(statusCell).toBeVisible({ timeout: 10_000 });
   });
 
-  test('Step 5 – Repair Engineer performs Factory Receive on Accepted RMA', async ({ page }) => {
+  test('Step 5 – Repair Engineer performs Factory Receive on Accepted RMA @integration', async ({ page }) => {
+    Logger.step('Step 5 – Repair Engineer performs Factory Receive on Accepted RMA');
+
     // ── GIVEN: Repair Engineer logs in
     await switchUser(page, USERS.repairEngineer);
     const frPage = new FactoryReceivePage(page);
@@ -509,13 +526,13 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     // ── AND: Notify checkbox is checked by default (soft check to prevent flake)
     const isChecked = await frPage.isNotifyCheckedByDefault().catch(() => false);
     if (!isChecked) {
-      console.log('  [Step 5] Notify checkbox was not checked by default (ignoring flake)');
+      Logger.info('  [Step 5] Notify checkbox was not checked by default (ignoring flake)');
     }
 
     // ── WHEN: Engineer enters the valid serial number and adds it
     await frPage.enterSerial(RMA.validSerial);
     await frPage.clickAdd();
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(2000ms)
 
     const hasError = await frPage.errorMessage.isVisible().catch(() => false);
     if (hasError) {
@@ -528,17 +545,17 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
 
     // ── AND: Select the Accepted RMA from the RMA ID/Status dropdown
     const rmaSelected = await frPage.selectFirstRma();
-    expect(rmaSelected, 'Expected to find an Accepted RMA in the dropdown').toBe(true);
+    await expect(rmaSelected, 'Expected to find an Accepted RMA in the dropdown').toBe(true);
 
     // ── THEN: Device info is auto-populated from the Accepted RMA
     const deviceInfoVisible = await frPage.deviceInfoBlock.isVisible().catch(() => false);
-    expect(deviceInfoVisible).toBe(true);
+    await expect(deviceInfoVisible).toBe(true);
 
     // ── WHEN: Engineer submits the receive
     await frPage.submitReceive();
 
     // ── THEN: Success message or redirected to a confirmation page
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(2000ms)
     const successMsg = page.locator('[class*="success"], .alert-success').first();
     const receivedBadge = page.locator('[class*="badge"]').filter({ hasText: 'Received' }).first();
     const isSuccess = await successMsg.isVisible().catch(() => false);
@@ -546,10 +563,12 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     // Also check if we were redirected away from the factory receive page (indicating success)
     const url = page.url();
     const wasRedirected = !url.includes('/factory/receive');
-    expect(isSuccess || isBadgeVisible || wasRedirected).toBe(true);
+    await expect(isSuccess || isBadgeVisible || wasRedirected).toBe(true);
   });
 
-  test('Step 6 – Dashboard "RMA In Progress" count increments after Factory Receive', async ({ page }) => {
+  test('Step 6 – Dashboard "RMA In Progress" count increments after Factory Receive @integration', async ({ page }) => {
+    Logger.step('Step 6 – Dashboard "RMA In Progress" count increments after Factory Receive');
+
     await switchUser(page, USERS.rmaAdmin);
     const dashboard = new DashboardPage(page);
     await dashboard.goto();
@@ -559,15 +578,19 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
 
     // Click through to verify filtered list contains Received RMAs
     await dashboard.clickCard(DASHBOARD.employee.inProgress);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     await expect(page.locator('text=/Dashboard.*In Progress/i').first()).toBeVisible({ timeout: 8_000 });
   });
 
-  test('Step 7 – Repair Engineer marks RMA as Repaired', async ({ page }) => {
+  test('Step 7 – Repair Engineer marks RMA as Repaired @integration', async ({ page }) => {
+    Logger.step('Step 7 – Repair Engineer marks RMA as Repaired');
+
     await switchUser(page, USERS.repairEngineer);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const receivedRow = page.locator('tbody tr').filter({ hasText: 'Received' }).first();
     const count = await receivedRow.count();
@@ -575,7 +598,7 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
 
     const actionBtn = receivedRow.locator('a, button').last();
     await actionBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // ── WHEN: Engineer clicks Repair
     await clickWorkflowAction(page, 'Repair');
@@ -593,7 +616,9 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     await expectWorkflowStatus(page, 'Repaired');
   });
 
-  test('Step 8 – "Repaired but not closed" dashboard count reflects repaired RMA', async ({ page }) => {
+  test('Step 8 – "Repaired but not closed" dashboard count reflects repaired RMA @integration', async ({ page }) => {
+    Logger.step('Step 8 – "Repaired but not closed" dashboard count reflects repaired RMA');
+
     await switchUser(page, USERS.rmaAdmin);
     const dashboard = new DashboardPage(page);
     await dashboard.goto();
@@ -602,7 +627,9 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
-  test('Step 9 – Customer sees RMA in "RMA Repaired" bubble (green)', async ({ page }) => {
+  test('Step 9 – Customer sees RMA in "RMA Repaired" bubble (green) @integration', async ({ page }) => {
+    Logger.step('Step 9 – Customer sees RMA in "RMA Repaired" bubble (green)');
+
     await switchUser(page, USERS.customerOne);
     const dashboard = new DashboardPage(page);
 
@@ -610,24 +637,28 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     let count = 0;
     for (let attempt = 1; attempt <= 4; attempt++) {
       await dashboard.goto();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       count = await getDashboardCount(page, DASHBOARD.customer.repaired);
       if (count >= 1) break;
-      console.log(`  [Step 9] Attempt ${attempt}: RMA Repaired count = ${count}, retrying after 3s...`);
-      await page.waitForTimeout(3000);
+      Logger.info(`  [Step 9] Attempt ${attempt}: RMA Repaired count = ${count}, retrying after 3s...`);
+      await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(3000ms)
     }
-    expect(count, `Customer dashboard "RMA Repaired" count should be ≥ 1 after repair, got ${count}`).toBeGreaterThanOrEqual(1);
+    await expect(count, `Customer dashboard "RMA Repaired" count should be ≥ 1 after repair, got ${count}`).toBeGreaterThanOrEqual(1);
 
     // Bubble should be GREEN (not grey)
     const bubbleBg = await dashboard.getCardBubbleColor(DASHBOARD.customer.repaired);
     // Green colours in RGB – should not be grey (all three channels roughly equal)
-    expect(bubbleBg).not.toMatch(/rgb\(2[0-4]\d,\s*2[0-4]\d,\s*2[0-4]\d\)/);  // not grey
+    await expect(bubbleBg).not.toMatch(/rgb\(2[0-4]\d,\s*2[0-4]\d,\s*2[0-4]\d\)/);  // not grey
   });
 
-  test('Step 10 – RMA Admin closes the Repaired RMA', async ({ page }) => {
+  test('Step 10 – RMA Admin closes the Repaired RMA @integration', async ({ page }) => {
+    Logger.step('Step 10 – RMA Admin closes the Repaired RMA');
+
     await switchUser(page, USERS.rmaAdmin);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const repairedRow = page.locator('tbody tr').filter({ hasText: 'Repaired' }).first();
     const count = await repairedRow.count();
@@ -635,7 +666,7 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
 
     const actionBtn = repairedRow.locator('a, button').last();
     await actionBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // ── WHEN: Admin clicks Close
     await clickWorkflowAction(page, 'Close');
@@ -645,7 +676,9 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     await expectWorkflowStatus(page, 'Closed');
   });
 
-  test('Step 11 – "Repaired but not closed" count decrements to 0 after close', async ({ page }) => {
+  test('Step 11 – "Repaired but not closed" count decrements to 0 after close @integration', async ({ page }) => {
+    Logger.step('Step 11 – "Repaired but not closed" count decrements to 0 after close');
+
     await switchUser(page, USERS.rmaAdmin);
     const dashboard = new DashboardPage(page);
     await dashboard.goto();
@@ -655,10 +688,10 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
     // Zero count card must still be clickable (core requirement)
     if (count === 0) {
       const isClickable = await dashboard.expectCardClickable(DASHBOARD.employee.repairedNotClosed);
-      expect(isClickable).toBe(true);
+      await expect(isClickable).toBe(true);
 
       await dashboard.clickCard(DASHBOARD.employee.repairedNotClosed);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       await expect(page).not.toHaveURL(/\/login|\/403/);
     }
   });
@@ -670,10 +703,14 @@ test.describe.serial('INT-SCEN-01 | Full RMA Lifecycle (Happy Path)', () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe.serial('INT-SCEN-02 | Reject Flow (Received → Rejected → Closed)', () => {
 
-  test('Step 1 – Find a Received RMA and Reject it', async ({ page }) => {
+  test('Step 1 – Find a Received RMA and Reject it @integration', async ({ page }) => {
+    Logger.step('Step 1 – Find a Received RMA and Reject it');
+
     await switchUser(page, USERS.rmaAdmin);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const receivedRow = page.locator('tbody tr').filter({ hasText: 'Received' }).first();
     const count = await receivedRow.count();
@@ -681,7 +718,7 @@ test.describe.serial('INT-SCEN-02 | Reject Flow (Received → Rejected → Close
 
     const actionBtn = receivedRow.locator('a, button').last();
     await actionBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // ── WHEN: Admin clicks Reject
     await clickWorkflowAction(page, 'Reject');
@@ -700,10 +737,14 @@ test.describe.serial('INT-SCEN-02 | Reject Flow (Received → Rejected → Close
     await expectWorkflowStatus(page, 'Rejected');
   });
 
-  test('Step 2 – Rejected RMA can be Closed with Device Status', async ({ page }) => {
+  test('Step 2 – Rejected RMA can be Closed with Device Status @integration', async ({ page }) => {
+    Logger.step('Step 2 – Rejected RMA can be Closed with Device Status');
+
     await switchUser(page, USERS.rmaAdmin);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const rejectedRow = page.locator('tbody tr').filter({ hasText: 'Rejected' }).first();
     const count = await rejectedRow.count();
@@ -711,7 +752,7 @@ test.describe.serial('INT-SCEN-02 | Reject Flow (Received → Rejected → Close
 
     const actionBtn = rejectedRow.locator('a, button').last();
     await actionBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // ── WHEN: Admin clicks Close
     await clickWorkflowAction(page, 'Close');
@@ -723,22 +764,26 @@ test.describe.serial('INT-SCEN-02 | Reject Flow (Received → Rejected → Close
     await expectWorkflowStatus(page, 'Closed');
   });
 
-  test('Step 3 – Reject WF dialog blocked without mandatory Comment', async ({ page }) => {
+  test('Step 3 – Reject WF dialog blocked without mandatory Comment @integration', async ({ page }) => {
+    Logger.step('Step 3 – Reject WF dialog blocked without mandatory Comment');
+
     await switchUser(page, USERS.rmaAdmin);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const receivedRow = page.locator('tbody tr').filter({ hasText: 'Received' }).first();
     if (await receivedRow.count() === 0) { await skipWithEvidence(page, test.info(), 'No Received RMA'); return; }
 
     const actionBtn = receivedRow.locator('a, button').last();
     await actionBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     await clickWorkflowAction(page, 'Reject');
 
     // ── WHEN: Submit the form WITHOUT filling Comment
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
     // Look for submit button in iframe first, then fallback to page
     const iframeEl = page.locator('#iframeWindow').first();
     const hasIframe = await iframeEl.isVisible({ timeout: 3000 }).catch(() => false);
@@ -756,7 +801,7 @@ test.describe.serial('INT-SCEN-02 | Reject Flow (Received → Rejected → Close
       return;
     }
     await submitBtn.click();
-    await page.waitForTimeout(1500);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1500ms)
 
     // ── THEN: Validation error shown OR page still shows the reject form/iframe
     const errorInIframe = hasIframe
@@ -764,7 +809,7 @@ test.describe.serial('INT-SCEN-02 | Reject Flow (Received → Rejected → Close
       : false;
     const errorOnPage = await page.locator('[class*="error"], .invalid-feedback, .alert-danger').first().isVisible().catch(() => false);
     const stillOnForm = page.url().includes('/workflow') || page.url().includes('/reject') || hasIframe;
-    expect(errorInIframe || errorOnPage || stillOnForm).toBe(true);
+    await expect(errorInIframe || errorOnPage || stillOnForm).toBe(true);
   });
 });
 
@@ -774,17 +819,21 @@ test.describe.serial('INT-SCEN-02 | Reject Flow (Received → Rejected → Close
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('INT-SCEN-03 | On-Hold Flow (Received → On Hold → Repaired → Close)', () => {
 
-  test('Step 1 – Repair Engineer puts Received RMA On Hold', async ({ page }) => {
+  test('Step 1 – Repair Engineer puts Received RMA On Hold @integration', async ({ page }) => {
+    Logger.step('Step 1 – Repair Engineer puts Received RMA On Hold');
+
     await switchUser(page, USERS.repairEngineer);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const receivedRow = page.locator('tbody tr').filter({ hasText: 'Received' }).first();
     if (await receivedRow.count() === 0) { await skipWithEvidence(page, test.info(), 'No Received RMA'); return; }
 
     const actionBtn = receivedRow.locator('a, button').last();
     await actionBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     await clickWorkflowAction(page, 'On Hold');
     await fillWorkflowDialog(page, { comment: 'INT TEST – Waiting for spare part. Putting on hold.' });
@@ -792,7 +841,9 @@ test.describe('INT-SCEN-03 | On-Hold Flow (Received → On Hold → Repaired →
     await expectWorkflowStatus(page, 'On-Hold');
   });
 
-  test('Step 2 – On-Hold RMA counted in "RMA In Progress" dashboard bubble', async ({ page }) => {
+  test('Step 2 – On-Hold RMA counted in "RMA In Progress" dashboard bubble @integration', async ({ page }) => {
+    Logger.step('Step 2 – On-Hold RMA counted in "RMA In Progress" dashboard bubble');
+
     await switchUser(page, USERS.rmaAdmin);
     const dashboard = new DashboardPage(page);
     await dashboard.goto();
@@ -802,17 +853,21 @@ test.describe('INT-SCEN-03 | On-Hold Flow (Received → On Hold → Repaired →
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
-  test('Step 3 – On-Hold RMA transitioned to Repaired by Repair Engineer', async ({ page }) => {
+  test('Step 3 – On-Hold RMA transitioned to Repaired by Repair Engineer @integration', async ({ page }) => {
+    Logger.step('Step 3 – On-Hold RMA transitioned to Repaired by Repair Engineer');
+
     await switchUser(page, USERS.repairEngineer);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const onHoldRow = page.locator('tbody tr').filter({ hasText: /On[- ]Hold/i }).first();
     if (await onHoldRow.count() === 0) { await skipWithEvidence(page, test.info(), 'No On-Hold RMA'); return; }
 
     const actionBtn = onHoldRow.locator('a, button').last();
     await actionBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     await clickWorkflowAction(page, 'Repair');
     await fillWorkflowDialog(page, {
@@ -834,12 +889,21 @@ test.describe('INT-SCEN-03 | On-Hold Flow (Received → On Hold → Repaired →
 // Verify KPI counts match actual list counts in real time
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('INT-SCEN-04 | Dashboard ↔ View RMA Count Synchronisation', () => {
+  // ── Allure labels ──
+  test.beforeEach(async () => {
+    await allure.feature('Integration');
+    await allure.story('Full RMA Lifecycle');
+  });
+
+
 
   test.beforeEach(async ({ page }) => {
     await switchUser(page, USERS.rmaAdmin);
   });
 
-  test('SC4-TC-001 | Pending Accept count = Submitted RMA list count', async ({ page }) => {
+  test('SC4-TC-001 | Pending Accept count = Submitted RMA list count @integration', async ({ page }) => {
+    Logger.step('SC4-TC-001 | Pending Accept count = Submitted RMA list count');
+
     const dashboard = new DashboardPage(page);
     await dashboard.goto();
 
@@ -847,7 +911,7 @@ test.describe('INT-SCEN-04 | Dashboard ↔ View RMA Count Synchronisation', () =
 
     // Click card → filtered list
     await dashboard.clickCard(DASHBOARD.employee.pendingAccept);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Verify list page loaded (not error page) and has rows if count > 0
     const listRows = page.locator('table tbody tr');
@@ -860,14 +924,16 @@ test.describe('INT-SCEN-04 | Dashboard ↔ View RMA Count Synchronisation', () =
     await expect(page).not.toHaveURL(/\/login|\/403/);
   });
 
-  test('SC4-TC-002 | In Progress count = (Received + On-Hold) list count', async ({ page }) => {
+  test('SC4-TC-002 | In Progress count = (Received + On-Hold) list count @integration', async ({ page }) => {
+    Logger.step('SC4-TC-002 | In Progress count = (Received + On-Hold) list count');
+
     const dashboard = new DashboardPage(page);
     await dashboard.goto();
 
     const bubbleCount = await getDashboardCount(page, DASHBOARD.employee.inProgress);
 
     await dashboard.clickCard(DASHBOARD.employee.inProgress);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const listCount = await page.locator('table tbody tr').count();
     if (bubbleCount > 0) {
@@ -876,14 +942,16 @@ test.describe('INT-SCEN-04 | Dashboard ↔ View RMA Count Synchronisation', () =
     await expect(page).not.toHaveURL(/\/login|\/403/);
   });
 
-  test('SC4-TC-003 | Repaired not closed count = Repaired list count', async ({ page }) => {
+  test('SC4-TC-003 | Repaired not closed count = Repaired list count @integration', async ({ page }) => {
+    Logger.step('SC4-TC-003 | Repaired not closed count = Repaired list count');
+
     const dashboard = new DashboardPage(page);
     await dashboard.goto();
 
     const bubbleCount = await getDashboardCount(page, DASHBOARD.employee.repairedNotClosed);
 
     await dashboard.clickCard(DASHBOARD.employee.repairedNotClosed);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const listCount = await page.locator('table tbody tr').count();
     if (bubbleCount > 0) {
@@ -892,7 +960,9 @@ test.describe('INT-SCEN-04 | Dashboard ↔ View RMA Count Synchronisation', () =
     await expect(page).not.toHaveURL(/\/login|\/403/);
   });
 
-  test('SC4-TC-004 | Zero-count card navigates to empty filtered list (not error)', async ({ page }) => {
+  test('SC4-TC-004 | Zero-count card navigates to empty filtered list (not error) @integration', async ({ page }) => {
+    Logger.step('SC4-TC-004 | Zero-count card navigates to empty filtered list (not error)');
+
     const dashboard = new DashboardPage(page);
     await dashboard.goto();
 
@@ -903,13 +973,13 @@ test.describe('INT-SCEN-04 | Dashboard ↔ View RMA Count Synchronisation', () =
     for (const cardName of allCards) {
       try {
         await dashboard.goto();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Check if the card exists on the dashboard
         const cardLocator = page.locator('div.bubble-box').filter({ hasText: cardName }).first();
         const cardExists = await cardLocator.isVisible({ timeout: 3000 }).catch(() => false);
         if (!cardExists) {
-          console.log(`  [SC4-TC-004] Card "${cardName}" not visible on dashboard — skipping`);
+          Logger.info(`  [SC4-TC-004] Card "${cardName}" not visible on dashboard — skipping`);
           continue;
         }
 
@@ -922,19 +992,19 @@ test.describe('INT-SCEN-04 | Dashboard ↔ View RMA Count Synchronisation', () =
           const isClickable = await linkInCard.isVisible({ timeout: 2000 }).catch(() => false);
 
           if (!isClickable) {
-            console.log(`  [SC4-TC-004] Card "${cardName}" (count=0) has no link — not clickable by design`);
+            Logger.info(`  [SC4-TC-004] Card "${cardName}" (count=0) has no link — not clickable by design`);
             testedCount++;
             continue;
           }
 
           // Card is clickable with count=0 — verify it doesn't error
           await dashboard.clickCard(cardName).catch((err) => {
-            console.log(`  [SC4-TC-004] Card "${cardName}" click failed: ${err.message}`);
+            Logger.info(`  [SC4-TC-004] Card "${cardName}" click failed: ${err.message}`);
           });
-          await page.waitForLoadState('networkidle').catch(() => {});
+          await page.waitForLoadState('domcontentloaded').catch(() => {});
 
           const url = page.url();
-          expect(url, `Card "${cardName}" redirected to login/403 when count=0`).not.toMatch(/\/login|\/403/);
+          await expect(url, `Card "${cardName}" redirected to login/403 when count=0`).not.toMatch(/\/login|\/403/);
 
           // View RMA should show a "no results" state, not an error page
           const errorPage = page.locator('text=/500|Internal Server Error/i');
@@ -942,12 +1012,12 @@ test.describe('INT-SCEN-04 | Dashboard ↔ View RMA Count Synchronisation', () =
         }
         testedCount++;
       } catch (err) {
-        console.log(`  [SC4-TC-004] Card "${cardName}" test error: ${err.message}`);
+        Logger.info(`  [SC4-TC-004] Card "${cardName}" test error: ${err.message}`);
       }
     }
 
     // Ensure we tested at least some cards
-    expect(testedCount, 'Should have tested at least 1 card').toBeGreaterThanOrEqual(1);
+    await expect(testedCount, 'Should have tested at least 1 card').toBeGreaterThanOrEqual(1);
   });
 
 
@@ -960,6 +1030,7 @@ test.describe('INT-SCEN-04 | Dashboard ↔ View RMA Count Synchronisation', () =
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', () => {
 
+
   const newAddress = {
     contactName    : 'INT Test Contact',
     returnCompany  : 'INT Test Company BV',
@@ -968,28 +1039,32 @@ test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', ()
     invoiceCompany : 'INT Invoice BV',
   };
 
-  test('Step 1 – RMA Admin creates a new Return Address', async ({ page }) => {
+  test('Step 1 – RMA Admin creates a new Return Address @integration', async ({ page }) => {
+    Logger.step('Step 1 – RMA Admin creates a new Return Address');
+
     await switchUser(page, USERS.rmaAdmin);
     await page.goto(ROUTES.manageAddress);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     // Click Add New Return Address
     const addBtn = page.locator('button:has-text("Add New Return Address"), a:has-text("Add New")').first();
     await expect(addBtn).toBeVisible({ timeout: 10_000 });
     await addBtn.click();
-    await page.waitForTimeout(600);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(600ms)
 
     // Handle Select2 for Customer Name (select#customer_id) — searchable Select2
     const customerSelect2 = page.locator('#select2-customer_id-container, .select2-container').first();
     await customerSelect2.waitFor({ state: 'visible', timeout: 5000 });
     await customerSelect2.click();
-    await page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms) — use event-based wait if needed
     // Customer Name Select2 IS searchable — type to filter
     const customerSearch = page.locator('.select2-search__field:visible').first();
     const customerSearchVisible = await customerSearch.isVisible({ timeout: 2000 }).catch(() => false);
     if (customerSearchVisible) {
       await customerSearch.fill(RMA.customerName);
-      await page.waitForTimeout(1500);
+      await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1500ms)
     }
     const customerOption = page.locator('.select2-results__option:not(.select2-results__message)').filter({ hasText: /VERSATEL/i }).first();
     await customerOption.waitFor({ state: 'visible', timeout: 5000 });
@@ -1012,7 +1087,7 @@ test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', ()
     const userOption = page.locator('.select2-results__option').filter({ hasText: RMA.customerUsername }).first();
     await userOption.waitFor({ state: 'visible', timeout: 5000 });
     await userOption.click();
-    await page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms) — use event-based wait if needed
 
     // Fill address form using verified ID selectors
     const contactField = page.locator('#contact_name, input[name*="contact_name"]').first();
@@ -1050,7 +1125,7 @@ test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', ()
     const saveBtn = page.locator('button.btn-submit, button:has-text("Submit"), button[type="submit"]').first();
     await saveBtn.waitFor({ state: 'visible', timeout: 5000 });
     await saveBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Check for validation errors — fail loudly instead of silently
     const validationError = page.locator('text=/The Following Error/i, .alert-danger').first();
@@ -1065,7 +1140,9 @@ test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', ()
     await expect(newEntry).toBeVisible({ timeout: 10_000 });
   });
 
-  test('Step 2 – New address appears in Submit RMA Return Location dropdown', async ({ page }) => {
+  test('Step 2 – New address appears in Submit RMA Return Location dropdown @integration', async ({ page }) => {
+    Logger.step('Step 2 – New address appears in Submit RMA Return Location dropdown');
+
     await switchUser(page, USERS.rmaAdmin);
     const form = new SubmitRMAPage(page);
     await form.goto();
@@ -1074,12 +1151,12 @@ test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', ()
     const customerSelect2 = page.locator('#select2-customer_id-container, .select2-container').first();
     await customerSelect2.waitFor({ state: 'visible', timeout: 5000 });
     await customerSelect2.click();
-    await page.waitForTimeout(500);
+    // removed: waitForTimeout(500ms) — use event-based wait if needed
     const customerSearch = page.locator('.select2-search__field:visible').first();
     const customerSearchVisible = await customerSearch.isVisible({ timeout: 2000 }).catch(() => false);
     if (customerSearchVisible) {
       await customerSearch.fill(RMA.customerName);
-      await page.waitForTimeout(1500);
+      await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1500ms)
     }
     const customerOption = page.locator('.select2-results__option:not(.select2-results__message)').filter({ hasText: /VERSATEL/i }).first();
     await customerOption.waitFor({ state: 'visible', timeout: 5000 });
@@ -1094,7 +1171,7 @@ test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', ()
       : userSelect2Fallback;
     await userSelect2.waitFor({ state: 'visible', timeout: 5000 });
     await userSelect2.click();
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
     const userOption = page.locator('.select2-results__option').filter({ hasText: RMA.customerUsername }).first();
     await userOption.waitFor({ state: 'visible', timeout: 5000 });
     await userOption.click();
@@ -1108,20 +1185,24 @@ test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', ()
       const options = await dropdown.locator('option').allTextContents();
       const found = options.some(opt => opt.includes(newAddress.returnCompany));
       if (found) {
-        expect(found).toBe(true);
+        await expect(found).toBe(true);
         return;
       }
     }
 
     // Fallback: check if the address name appears anywhere on the page
     const addressOnPage = await page.locator(`text=${newAddress.returnCompany}`).first().isVisible({ timeout: 3000 }).catch(() => false);
-    expect(addressOnPage, `Return address "${newAddress.returnCompany}" not found in dropdown`).toBe(true);
+    await expect(addressOnPage, `Return address "${newAddress.returnCompany}" not found in dropdown`).toBe(true);
   });
 
-  test('Step 3 – Edit existing address creates new DB entry (preserves old)', async ({ page }) => {
+  test('Step 3 – Edit existing address creates new DB entry (preserves old) @integration', async ({ page }) => {
+    Logger.step('Step 3 – Edit existing address creates new DB entry (preserves old)');
+
     await switchUser(page, USERS.rmaAdmin);
     await page.goto(ROUTES.manageAddress);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     // Find the address we created and click to view it
     const addressRow = page.locator('tr').filter({ hasText: newAddress.returnCompany }).first();
@@ -1135,7 +1216,7 @@ test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', ()
     } else {
       await addressRow.click();
     }
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // On the detail page, click the "Edit" button to go to edit form
     const editBtn = page.locator('a:has-text("Edit"), button:has-text("Edit")').first();
@@ -1145,7 +1226,7 @@ test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', ()
       return;
     }
     await editBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Modify the company name on the edit form
     const companyField = page.locator('#company, input[name*="company"]').first();
@@ -1160,11 +1241,13 @@ test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', ()
     const saveBtn = page.locator('button.btn-submit, button:has-text("Submit"), button:has-text("Save"), button[type="submit"]').first();
     await saveBtn.waitFor({ state: 'visible', timeout: 5000 });
     await saveBtn.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // ── THEN: Navigate back to list to verify both entries
     await page.goto(ROUTES.manageAddress);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const updatedEntry = page.locator(`text=/UPDATED/i`).first();
     await expect(updatedEntry).toBeVisible({ timeout: 8_000 });
@@ -1180,7 +1263,9 @@ test.describe('INT-SCEN-05 | Return Address ↔ Submit RMA Form Integration', ()
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe.serial('INT-SCEN-06 | Factory Receive → Status Color → Dashboard Update', () => {
 
-  test('Step 1 – Receive multiple S/Ns in one Factory Receive session', async ({ page }) => {
+  test('Step 1 – Receive multiple S/Ns in one Factory Receive session @integration', async ({ page }) => {
+    Logger.step('Step 1 – Receive multiple S/Ns in one Factory Receive session');
+
     await switchUser(page, USERS.repairEngineer);
     const frPage = new FactoryReceivePage(page);
     await frPage.goto();
@@ -1188,7 +1273,7 @@ test.describe.serial('INT-SCEN-06 | Factory Receive → Status Color → Dashboa
     // Add first S/N
     await frPage.enterSerial(RMA.validSerial);
     await frPage.clickAdd();
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(2000ms)
 
     // Check for any error (no Accepted RMA, already received, etc.)
     const errorMsg = page.locator('.alert-danger, text=/error/i, text=/not found/i, text=/already/i').first();
@@ -1210,7 +1295,7 @@ test.describe.serial('INT-SCEN-06 | Factory Receive → Status Color → Dashboa
     // Attempt to add the same S/N again — app may block or allow (different RMA IDs)
     await frPage.enterSerial(RMA.validSerial);
     await frPage.clickAdd();
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
 
     const dupError = page.locator('text=/already added|duplicate|already received/i').first();
     const dupVisible = await dupError.isVisible().catch(() => false);
@@ -1218,23 +1303,27 @@ test.describe.serial('INT-SCEN-06 | Factory Receive → Status Color → Dashboa
 
     // Document the behavior: app may allow or block duplicate serial adds
     if (dupVisible) {
-      console.log('  [Step 1] Duplicate serial correctly blocked with error message');
+      Logger.info('  [Step 1] Duplicate serial correctly blocked with error message');
     } else if (countAfterDup <= countAfterFirst) {
-      console.log('  [Step 1] Duplicate serial blocked (count unchanged)');
+      Logger.info('  [Step 1] Duplicate serial blocked (count unchanged)');
     } else {
       // App allowed the duplicate — this is valid if serial has multiple Accepted RMAs
-      console.log(`  [Step 1] App allowed duplicate serial add (count: ${countAfterFirst} → ${countAfterDup}). Multiple Accepted RMAs may exist.`);
+      Logger.info(`  [Step 1] App allowed duplicate serial add (count: ${countAfterFirst} → ${countAfterDup}). Multiple Accepted RMAs may exist.`);
       test.info().annotations.push({ type: 'info', description: `Duplicate serial was allowed: count ${countAfterFirst} → ${countAfterDup}` });
     }
 
     // Verify the receive list still shows at least the original serial
-    expect(countAfterDup, 'Factory Receive list should have at least one serial').toBeGreaterThanOrEqual(countAfterFirst);
+    await expect(countAfterDup, 'Factory Receive list should have at least one serial').toBeGreaterThanOrEqual(countAfterFirst);
   });
 
-  test('Step 2 – Received RMA shows blue badge in View list after Factory Receive', async ({ page }) => {
+  test('Step 2 – Received RMA shows blue badge in View list after Factory Receive @integration', async ({ page }) => {
+    Logger.step('Step 2 – Received RMA shows blue badge in View list after Factory Receive');
+
     await switchUser(page, USERS.rmaAdmin);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const receivedBadge = page.locator('[class*="badge"], [class*="status"]').filter({ hasText: 'Received' }).first();
     const count = await receivedBadge.count();
@@ -1242,24 +1331,26 @@ test.describe.serial('INT-SCEN-06 | Factory Receive → Status Color → Dashboa
     if (count > 0) {
       const bgColor = await receivedBadge.evaluate(el => window.getComputedStyle(el).backgroundColor);
       // Should be blue-toned, not white or grey
-      expect(bgColor).not.toBe('rgba(0, 0, 0, 0)');
-      expect(bgColor).not.toBe('rgb(255, 255, 255)');
-      console.log(`  Received badge bg: ${bgColor}`);
+      await expect(bgColor).not.toBe('rgba(0, 0, 0, 0)');
+      await expect(bgColor).not.toBe('rgb(255, 255, 255)');
+      Logger.info(`  Received badge bg: ${bgColor}`);
     }
   });
 
-  test('Step 3 – Factory Receive without Notify does not expose email trigger', async ({ page }) => {
+  test('Step 3 – Factory Receive without Notify does not expose email trigger @integration', async ({ page }) => {
+    Logger.step('Step 3 – Factory Receive without Notify does not expose email trigger');
+
     await switchUser(page, USERS.repairEngineer);
     const frPage = new FactoryReceivePage(page);
     await frPage.goto();
 
     // Uncheck the notify checkbox
     await frPage.uncheckNotify();
-    expect(await frPage.notifyCheckbox.isChecked()).toBe(false);
+    await expect(await frPage.notifyCheckbox.isChecked()).toBe(false);
 
     await frPage.enterSerial(RMA.validSerial);
     await frPage.clickAdd();
-    await page.waitForTimeout(1500);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1500ms)
 
     const hasError = await frPage.errorMessage.isVisible().catch(() => false);
     if (!hasError) {
@@ -1267,7 +1358,7 @@ test.describe.serial('INT-SCEN-06 | Factory Receive → Status Color → Dashboa
       // Success: no email should have been sent (verified manually / via email logs)
       // Automation confirms: no error thrown, receive completed
       const url = page.url();
-      expect(url).not.toContain('/500');
+      await expect(url).not.toContain('/500');
     }
   });
 });
@@ -1278,11 +1369,14 @@ test.describe.serial('INT-SCEN-06 | Factory Receive → Status Color → Dashboa
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('INT-SCEN-07 | Security – Cross-Module Unauthorized Access', () => {
 
-  test('SC7-TC-001 | Customer cannot manipulate another customer RMA via direct URL', async ({ page }) => {
+
+  test('SC7-TC-001 | Customer cannot manipulate another customer RMA via direct URL @integration', async ({ page }) => {
+    Logger.step('SC7-TC-001 | Customer cannot manipulate another customer RMA via direct URL');
+
     // Log in as Customer One, get own RMA IDs
     await switchUser(page, USERS.customerOne);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const firstRow = page.locator('table tbody tr').first();
     const idBtn = firstRow.locator('button, td:first-child').first();
@@ -1291,15 +1385,17 @@ test.describe('INT-SCEN-07 | Security – Cross-Module Unauthorized Access', () 
     // Try to access RMA with ID = ownId + 100 (likely belongs to another customer)
     const foreignId = parseInt(ownRmaId, 10) + 100;
     const response = await page.goto(`/rma/request/${foreignId}`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const status = response?.status() ?? 200;
     const url = page.url();
     const isBlocked = status === 403 || status === 404 || url.includes('/login') || url.includes('/unauthorized');
-    expect(isBlocked).toBe(true);
+    await expect(isBlocked).toBe(true);
   });
 
-  test('SC7-TC-002 | Unauthenticated API call to accept workflow returns 401', async ({ page, playwright }) => {
+  test('SC7-TC-002 | Unauthenticated API call to accept workflow returns 401 @integration', async ({ page, playwright }) => {
+    Logger.step('SC7-TC-002 | Unauthenticated API call to accept workflow returns 401');
+
     // Create a truly unauthenticated request context (no cookies from setup)
     const apiContext = await playwright.request.newContext({
       baseURL: page.url().match(/^https?:\/\/[^/]+/)?.[0] ?? 'https://myconnect-acc.ekinops.com',
@@ -1313,54 +1409,64 @@ test.describe('INT-SCEN-07 | Security – Cross-Module Unauthorized Access', () 
       const status = response.status();
       // Any non-5xx status is acceptable — the key assertion is that the request doesn't succeed
       // as a legitimate workflow action (which would return a success page/redirect to RMA detail)
-      expect(status).toBeLessThan(500);
+      await expect(status).toBeLessThan(500);
     } finally {
       await apiContext.dispose();
     }
   });
 
-  test('SC7-TC-003 | Customer API call to Factory Receive returns 403', async ({ page }) => {
+  test('SC7-TC-003 | Customer API call to Factory Receive returns 403 @integration', async ({ page }) => {
+    Logger.step('SC7-TC-003 | Customer API call to Factory Receive returns 403');
+
     await switchUser(page, USERS.customerOne);
 
     // Attempt factory receive as customer via page navigation (not API)
-    const response = await page.goto('/rma/factory/receive/');
-    await page.waitForLoadState('networkidle');
+    const response = await page.goto(ROUTES.factoryReceive);
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
     const status = response?.status() ?? 200;
     const url = page.url();
     // Customer should be blocked: either 403, redirected to login, or empty list
     const isBlocked = status === 403 || url.includes('/login') || url.includes('/unauthorized') || url.includes('/dashboard');
-    expect(isBlocked || status === 200).toBe(true); // 200 is OK if they can see but not act
+    await expect(isBlocked || status === 200).toBe(true); // 200 is OK if they can see but not act
   });
 
-  test('SC7-TC-004 | Repair Watcher cannot POST to any write endpoint', async ({ page }) => {
+  test('SC7-TC-004 | Repair Watcher cannot POST to any write endpoint @integration', async ({ page }) => {
+    Logger.step('SC7-TC-004 | Repair Watcher cannot POST to any write endpoint');
+
     await switchUser(page, USERS.repairWatcher);
 
     // Watcher should not be able to submit an RMA
-    await page.goto('/rma/add');
-    await page.waitForLoadState('networkidle');
+    await page.goto(ROUTES.submitRma);
+    await page.waitForLoadState('domcontentloaded');
     const url = page.url();
     // Either redirected away from /add or 403
     const isBlocked = !url.includes('/rma/add') || url.includes('/login') || url.includes('/403');
     // Even if the page loads, the watcher role should not have write access
-    expect(isBlocked || url.includes('/rma/')).toBe(true);
+    await expect(isBlocked || url.includes('/rma/')).toBe(true);
   });
 
-  test('SC7-TC-005 | Error responses do not expose stack traces or DB info', async ({ page }) => {
+  test('SC7-TC-005 | Error responses do not expose stack traces or DB info @integration', async ({ page }) => {
+    Logger.step('SC7-TC-005 | Error responses do not expose stack traces or DB info');
+
     await switchUser(page, USERS.rmaAdmin);
 
     // Trigger a 404
     const response = await page.goto('/rma/request/99999999');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const bodyText = await page.locator('body').textContent();
-    expect(bodyText).not.toContain('at Object.');     // stack trace
-    expect(bodyText).not.toContain('SELECT * FROM'); // SQL
-    expect(bodyText).not.toContain('SQLSTATE');
-    expect(bodyText).not.toContain('ORA-');
-    expect(bodyText).not.toContain('MySQL');
+    await expect(bodyText).not.toContain('at Object.');     // stack trace
+    await expect(bodyText).not.toContain('SELECT * FROM'); // SQL
+    await expect(bodyText).not.toContain('SQLSTATE');
+    await expect(bodyText).not.toContain('ORA-');
+    await expect(bodyText).not.toContain('MySQL');
   });
 
-  test('SC7-TC-006 | Session cookie is HttpOnly and Secure', async ({ page }) => {
+  test('SC7-TC-006 | Session cookie is HttpOnly and Secure @integration', async ({ page }) => {
+    Logger.step('SC7-TC-006 | Session cookie is HttpOnly and Secure');
+
     await switchUser(page, USERS.rmaAdmin);
 
     const cookies = await page.context().cookies();
@@ -1371,10 +1477,10 @@ test.describe('INT-SCEN-07 | Security – Cross-Module Unauthorized Access', () 
     );
 
     if (sessionCookie) {
-      expect(sessionCookie.httpOnly, 'Session cookie must be HttpOnly').toBe(true);
+      await expect(sessionCookie.httpOnly, 'Session cookie must be HttpOnly').toBe(true);
       // Secure flag may not apply on HTTP dev env but check if on HTTPS
       if (page.url().startsWith('https')) {
-        expect(sessionCookie.secure, 'Session cookie must be Secure on HTTPS').toBe(true);
+        await expect(sessionCookie.secure, 'Session cookie must be Secure on HTTPS').toBe(true);
       }
     }
   });
@@ -1386,7 +1492,9 @@ test.describe('INT-SCEN-07 | Security – Cross-Module Unauthorized Access', () 
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe.serial('INT-SCEN-08 | Factory Insert → View RMA List Integration', () => {
 
-  test('Step 1 – RMA Admin creates RMA via Factory Insert', async ({ page }) => {
+  test('Step 1 – RMA Admin creates RMA via Factory Insert @integration', async ({ page }) => {
+    Logger.step('Step 1 – RMA Admin creates RMA via Factory Insert');
+
     await switchUser(page, USERS.rmaAdmin);
     const fiPage = new FactoryInsertPage(page);
     await fiPage.goto();
@@ -1394,11 +1502,11 @@ test.describe.serial('INT-SCEN-08 | Factory Insert → View RMA List Integration
     // Select Customer and User to ensure Return Location is populated
     await fiPage.selectCustomerBySearch(RMA.customerName);
     await fiPage.selectCustomerUserBySearch(RMA.customerUsername);
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
 
     // Fill mandatory fields
     await fiPage.fillSerial(RMA.validSerial);
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('domcontentloaded'); // replaced: waitForTimeout(1000ms)
 
     // Select RMA type
     const typeDropdown = fiPage.rmaTypeDropdown;
@@ -1412,11 +1520,11 @@ test.describe.serial('INT-SCEN-08 | Factory Insert → View RMA List Integration
       const locationSelect2 = locationLabel.locator('xpath=..').locator('.select2-selection').first();
       if (await locationSelect2.isVisible().catch(() => false)) {
         await locationSelect2.click();
-        await page.waitForTimeout(500);
+        // removed: waitForTimeout(500ms) — use event-based wait if needed
         const options = page.locator('.select2-results__option:not(.select2-results__message)');
         if (await options.count() > 0) {
           await options.first().click();
-          await page.waitForTimeout(500);
+          // removed: waitForTimeout(500ms) — use event-based wait if needed
         } else {
           await page.keyboard.press('Escape'); // close dropdown if empty
         }
@@ -1424,26 +1532,34 @@ test.describe.serial('INT-SCEN-08 | Factory Insert → View RMA List Integration
     }
 
     await fiPage.clickSubmit();
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // ── THEN: Navigated away from factory insert; record created
     await expect(page).not.toHaveURL(/\/factory-insert$/);
   });
 
-  test('Step 2 – Factory-inserted RMA appears in View RMA list', async ({ page }) => {
+  test('Step 2 – Factory-inserted RMA appears in View RMA list @integration', async ({ page }) => {
+    Logger.step('Step 2 – Factory-inserted RMA appears in View RMA list');
+
     await switchUser(page, USERS.rmaAdmin);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     // The S/N used in factory insert should appear in the list
     const snRow = page.locator('tr').filter({ hasText: RMA.validSerial }).first();
     await expect(snRow).toBeVisible({ timeout: 10_000 });
   });
 
-  test('Step 3 – Factory-inserted RMA starts in Submitted or Accepted status', async ({ page }) => {
+  test('Step 3 – Factory-inserted RMA starts in Submitted or Accepted status @integration', async ({ page }) => {
+    Logger.step('Step 3 – Factory-inserted RMA starts in Submitted or Accepted status');
+
     await switchUser(page, USERS.rmaAdmin);
     await page.goto(ROUTES.viewRma);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    // Wait for AJAX DataTable to populate
+    await page.locator('table tbody tr').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => {});
 
     const snRow = page.locator('tr').filter({ hasText: RMA.validSerial }).first();
     if (await snRow.count() === 0) { await skipWithEvidence(page, test.info(), 'S/N not found in list'); return; }
@@ -1454,7 +1570,7 @@ test.describe.serial('INT-SCEN-08 | Factory Insert → View RMA List Integration
     // Accept any valid active status — Factory Insert may land in different states
     const validStatuses = ['Submitted', 'Accepted', 'Received', 'On-Hold', 'Repaired', 'Closed', 'Rejected'];
     const matchesAny = validStatuses.some(s => statusText.includes(s));
-    expect(matchesAny, `Status "${statusText}" not in expected list`).toBe(true);
+    await expect(matchesAny, `Status "${statusText}" not in expected list`).toBe(true);
   });
 });
 
@@ -1464,7 +1580,10 @@ test.describe.serial('INT-SCEN-08 | Factory Insert → View RMA List Integration
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('INT-SCEN-09 | "More Than 3 Times" Cross-Module Tracking', () => {
 
-  test('SC9-TC-001 | S/N with >3 submissions appears in dashboard card', async ({ page }) => {
+
+  test('SC9-TC-001 | S/N with >3 submissions appears in dashboard card @integration', async ({ page }) => {
+    Logger.step('SC9-TC-001 | S/N with >3 submissions appears in dashboard card');
+
     await switchUser(page, USERS.rmaAdmin);
     const dashboard = new DashboardPage(page);
     await dashboard.goto();
@@ -1473,7 +1592,7 @@ test.describe('INT-SCEN-09 | "More Than 3 Times" Cross-Module Tracking', () => {
 
     // ── WHEN: Card is clicked (even if 0)
     await dashboard.clickCard(DASHBOARD.employee.submittedMore3Times);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // ── THEN: Filter is applied; page shows the right filter label
     const filterLabel = page.locator('text=/Dashboard.*More than 3/i').first();
@@ -1484,11 +1603,13 @@ test.describe('INT-SCEN-09 | "More Than 3 Times" Cross-Module Tracking', () => {
     const rowCount = await rows.count();
     for (let i = 0; i < Math.min(rowCount, 5); i++) {
       const rowText = await rows.nth(i).textContent() ?? '';
-      expect(rowText).not.toContain('Closed');
+      await expect(rowText).not.toContain('Closed');
     }
   });
 
-  test('SC9-TC-002 | Dashboard card for >3 submissions is RED when count > 0', async ({ page }) => {
+  test('SC9-TC-002 | Dashboard card for >3 submissions is RED when count > 0 @integration', async ({ page }) => {
+    Logger.step('SC9-TC-002 | Dashboard card for >3 submissions is RED when count > 0');
+
     await switchUser(page, USERS.rmaAdmin);
     const dashboard = new DashboardPage(page);
     await dashboard.goto();
@@ -1503,9 +1624,9 @@ test.describe('INT-SCEN-09 | "More Than 3 Times" Cross-Module Tracking', () => {
     const card = page.locator('div.bubble-box').filter({ hasText: DASHBOARD.employee.submittedMore3Times }).first();
     const bubble = card.locator('div.dashboard-bubble').first();
     const bubbleClasses = await bubble.getAttribute('class') ?? '';
-    console.log(`  >3 times bubble classes: ${bubbleClasses}`);
+    Logger.info(`  >3 times bubble classes: ${bubbleClasses}`);
     // Should have bubble-red class when count > 0
-    expect(bubbleClasses).toMatch(/bubble-red/i);
+    await expect(bubbleClasses).toMatch(/bubble-red/i);
   });
 });
 
@@ -1514,6 +1635,7 @@ test.describe('INT-SCEN-09 | "More Than 3 Times" Cross-Module Tracking', () => {
 // Branding & UI Consistency Across Modules
 // ═══════════════════════════════════════════════════════════════════════════════
 test.describe('INT-SCEN-10 | Branding & UI Consistency Across All RMA Modules', () => {
+
 
   test.beforeEach(async ({ page }) => {
     await switchUser(page, USERS.rmaAdmin);
@@ -1529,37 +1651,43 @@ test.describe('INT-SCEN-10 | Branding & UI Consistency Across All RMA Modules', 
   ];
 
   for (const { name, url } of pages) {
-    test(`${name} page has green h2 heading (#00BD00)`, async ({ page }) => {
+    test(`${name} page has green h2 heading (#00BD00) @integration`, async ({ page }) => {
+    Logger.step('... page has green h2 heading (#00BD00)');
+
       await page.goto(url);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const h2 = page.locator('h2, h1').first();
       await expect(h2).toBeVisible({ timeout: 8_000 });
 
       const color = await h2.evaluate(el => window.getComputedStyle(el).color);
-      console.log(`  ${name} h2 colour: ${color}`);
+      Logger.info(`  ${name} h2 colour: ${color}`);
       // Should not be default black rgb(0,0,0)
-      expect(color).not.toBe('rgb(0, 0, 0)');
+      await expect(color).not.toBe('rgb(0, 0, 0)');
     });
   }
 
-  test('Footer background colour is Ekinops navy (#060075)', async ({ page }) => {
+  test('Footer background colour is Ekinops navy (#060075) @integration', async ({ page }) => {
+    Logger.step('Footer background colour is Ekinops navy (#060075)');
+
     await page.goto(ROUTES.rmaDashboard);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const footer = page.locator('footer').first();
     if (await footer.isVisible()) {
       const bgColor = await footer.evaluate(el => window.getComputedStyle(el).backgroundColor);
-      console.log(`  Footer bg: ${bgColor}`);
+      Logger.info(`  Footer bg: ${bgColor}`);
       // Should be a very dark blue / navy (not white, not grey)
-      expect(bgColor).not.toBe('rgba(0, 0, 0, 0)');
-      expect(bgColor).not.toBe('rgb(255, 255, 255)');
+      await expect(bgColor).not.toBe('rgba(0, 0, 0, 0)');
+      await expect(bgColor).not.toBe('rgb(255, 255, 255)');
     }
   });
 
-  test('Header nav "RMA" link is positioned between Tickets and Document Center', async ({ page }) => {
+  test('Header nav "RMA" link is positioned between Tickets and Document Center @integration', async ({ page }) => {
+    Logger.step('Header nav "RMA" link is positioned between Tickets and Document Center');
+
     await page.goto(ROUTES.rmaDashboard);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const navLinks = await page.locator('header nav a, .navbar a').allTextContents();
     const rmaIdx      = navLinks.findIndex(t => /RMA/i.test(t));
@@ -1568,7 +1696,7 @@ test.describe('INT-SCEN-10 | Branding & UI Consistency Across All RMA Modules', 
 
     if (rmaIdx >= 0 && ticketsIdx >= 0 && docCenterIdx >= 0) {
       expect(rmaIdx).toBeGreaterThan(ticketsIdx);
-      expect(rmaIdx).toBeLessThan(docCenterIdx);
+      await expect(rmaIdx).toBeLessThan(docCenterIdx);
     }
   });
 });

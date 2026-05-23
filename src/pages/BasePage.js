@@ -4,13 +4,19 @@
  * Provides common page interaction methods that all page objects inherit.
  * Every page class in the framework should extend BasePage.
  *
+ * Logger integration:
+ *   Every subclass automatically gets a Logger instance (this.logger).
+ *   Use this.logger.action(), this.logger.verify(), this.logger.step() in subclasses.
+ *
  * @example
  * class LoginPage extends BasePage {
  *   constructor(page) {
  *     super(page);
+ *     // this.logger is already available — context = 'LoginPage'
  *   }
  * }
  */
+const Logger = require('../helpers/Logger');
 class BasePage {
   /**
    * @param {import('@playwright/test').Page} page - Playwright page instance
@@ -18,6 +24,11 @@ class BasePage {
   constructor(page) {
     /** @type {import('@playwright/test').Page} */
     this.page = page;
+    /**
+     * Logger instance — context is automatically set to the subclass name.
+     * @type {Logger}
+     */
+    this.logger = new Logger(this.constructor.name);
   }
 
   /**
@@ -26,6 +37,7 @@ class BasePage {
    * @returns {Promise<void>}
    */
   async navigate(path = '/') {
+    this.logger.action('goto', path);
     await this.page.goto(path, { waitUntil: 'commit' });
   }
 
@@ -51,7 +63,8 @@ class BasePage {
    * @returns {Promise<void>}
    */
   async waitForPageLoad(timeout = 10_000) {
-    await this.page.waitForLoadState('networkidle', { timeout });
+    this.logger.action('waitForPageLoad', 'domcontentloaded');
+    await this.page.waitForLoadState('domcontentloaded', { timeout });
   }
 
   /**
@@ -153,6 +166,7 @@ class BasePage {
    * @returns {Promise<Buffer>} Screenshot buffer
    */
   async screenshot(name) {
+    this.logger.action('screenshot', name);
     return this.page.screenshot({
       path: `screenshots/${name}.png`,
       fullPage: true,
